@@ -16,6 +16,7 @@ HOME_COUNTRY = "USA"                 # importer side (US industries)
 # Extended ICIO splits China (and Mexico) by firm type. Handle every code form
 # a release might use; the sum over these = total China.
 CHINA_CODES = ("CHN", "CN1", "CN2")
+CHINA_CODE_PREFIXES = ("CHN", "CN")
 
 ICIO_EDITION_PRIMARY = "2025-extended"   # 1995-2022, splits China processing/non-processing
 ICIO_EDITION_FALLBACK = "2023"           # 1995-2020, documented fallback

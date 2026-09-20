@@ -52,12 +52,25 @@ def _is_country_industry_row(label: str) -> bool:
 
 def _is_home_industry_col(label: str) -> bool:
     country, code = parse_label(label)
-    return country == C.HOME_COUNTRY and code not in C.FINAL_DEMAND_CODES
+    return country == C.HOME_COUNTRY and code not in C.VA_ROW_CODES and code not in C.FINAL_DEMAND_CODES
+
+
+def _is_china_country(country: str | None) -> bool:
+    """True for China aggregate/split country codes used across ICIO releases."""
+    if country is None:
+        return False
+    return country in C.CHINA_CODES or country.startswith(C.CHINA_CODE_PREFIXES)
 
 
 def _is_china_row(label: str) -> bool:
     country, code = parse_label(label)
-    return (country in C.CHINA_CODES) and code not in C.VA_ROW_CODES and code not in C.FINAL_DEMAND_CODES
+    return _is_china_country(country) and code not in C.VA_ROW_CODES and code not in C.FINAL_DEMAND_CODES
+
+
+def china_country_codes_present(labels: pd.Index | list[str]) -> tuple[str, ...]:
+    """Return China country codes observed in ICIO labels, for release-specific auditing."""
+    found = {parse_label(label)[0] for label in labels}
+    return tuple(sorted(country for country in found if _is_china_country(country)))
 
 
 def load_icio_year(path: str | Path) -> pd.DataFrame:
@@ -84,6 +97,7 @@ def china_input_share(Z: pd.DataFrame) -> pd.DataFrame:
         raise ValueError(f"No {C.HOME_COUNTRY} industry columns found — check label format / codes.")
     if not china_rows:
         raise ValueError(f"No China rows found (codes {C.CHINA_CODES}) — check the ICIO edition codes.")
+    china_codes = china_country_codes_present(Z.index)
 
     china_int = Z.loc[china_rows, us_cols].sum(axis=0)
     total_int = Z.loc[ci_rows, us_cols].sum(axis=0)
@@ -95,6 +109,7 @@ def china_input_share(Z: pd.DataFrame) -> pd.DataFrame:
     # An industry appears once as a US column, but guard against duplicates by summing.
     out = out.groupby("industry", as_index=False).sum()
     out["china_input_share"] = out["china_intermediate"] / out["total_intermediate"]
+    out["china_origin_codes"] = ",".join(china_codes)
     return out.sort_values("industry").reset_index(drop=True)
 
 
@@ -121,22 +136,27 @@ def base_and_robustness(long: pd.DataFrame) -> pd.DataFrame:
 if __name__ == "__main__":
     # Self-test on a tiny synthetic 2-country (USA, CHN) x 2-industry ICIO matrix,
     # so the computation is verifiable without the multi-GB real file.
-    labels = ["USA_C10", "USA_C26", "CHN_C10", "CHN_C26"]
-    fd_va = ["USA_HFCE", "TLS"]
+    labels = ["USA_C10", "USA_C26", "CHN_C10", "CHN_C26", "CN1_C10", "USA_TLS"]
+    fd_va = ["USA_HFCE", "TLS", "USA_VA"]
     demo = pd.DataFrame(
         [
-            # cols: USA_C10 USA_C26 CHN_C10 CHN_C26 | USA_HFCE TLS
-            [10, 5, 0, 0, 30, 0],   # USA_C10 supplying
-            [4, 20, 0, 0, 10, 0],   # USA_C26 supplying
-            [6, 15, 0, 0, 0, 0],    # CHN_C10 supplying -> into USA cols
-            [0, 40, 0, 0, 0, 0],    # CHN_C26 supplying -> into USA cols
+            # cols: USA_C10 USA_C26 CHN_C10 CHN_C26 CN1_C10 USA_TLS | USA_HFCE TLS USA_VA
+            [10, 5, 0, 0, 0, 999, 30, 0, 999],   # USA_C10 supplying
+            [4, 20, 0, 0, 0, 999, 10, 0, 999],   # USA_C26 supplying
+            [5, 15, 0, 0, 0, 999, 0, 0, 999],    # CHN_C10 supplying -> into USA cols
+            [0, 40, 0, 0, 0, 999, 0, 0, 999],    # CHN_C26 supplying -> into USA cols
+            [1, 0, 0, 0, 0, 999, 0, 0, 999],     # CN1 split-China row is included
+            [100, 100, 0, 0, 0, 999, 0, 0, 999], # USA_TLS value-added row is excluded
         ],
         index=labels, columns=labels + fd_va,
     )
     res = china_input_share(demo)
     print(res.to_string(index=False))
-    # Manual check: USA_C10 col intermediates = 10+4+6+0=20, China=6+0=6 -> 0.30
-    #               USA_C26 col intermediates = 5+20+15+40=80, China=15+40=55 -> 0.6875
+    # Manual check: USA_C10 col intermediates = 10+4+5+0+1=20, China=5+0+1=6 -> 0.30
+    #               USA_C26 col intermediates = 5+20+15+40+0=80, China=15+40+0=55 -> 0.6875
     assert abs(res.loc[res.industry == "C10", "china_input_share"].iloc[0] - 0.30) < 1e-9
     assert abs(res.loc[res.industry == "C26", "china_input_share"].iloc[0] - 0.6875) < 1e-9
+    assert "TLS" not in set(res["industry"])
+    assert "VA" not in set(res["industry"])
+    assert res["china_origin_codes"].iloc[0] == "CHN,CN1"
     print("\nself-test OK")
