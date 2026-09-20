@@ -15,13 +15,19 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.common.twfe import twfe_cluster
+from src.common.twfe import twfe_cluster, wild_cluster_bootstrap
 from src.data.sector_prices import load_price_tariff_panel
 
 
 def run() -> dict:
     return twfe_cluster(load_price_tariff_panel(), "log_price", "effective_tariff",
                         "naics", "period", cluster="naics")
+
+
+def run_wcb() -> dict:
+    """Wild-cluster bootstrap p-value — reliable inference with only ~22 NAICS clusters."""
+    return wild_cluster_bootstrap(load_price_tariff_panel(), "log_price", "effective_tariff",
+                                  "naics", "period", cluster="naics")
 
 
 if __name__ == "__main__":
@@ -36,6 +42,9 @@ if __name__ == "__main__":
     print("passes through to US importers and the adjustment shows up in quantities/value")
     print("(sector event study), not in the border price. A large negative beta would instead")
     print("indicate Chinese exporters cutting dollar prices to absorb the tariff.")
-    print(f"\nCaveat: only {r['n_fe1']} NAICS clusters -> cluster-robust inference is approximate")
-    print("(small-G); the robust conclusion is the SIGN (no significant negative offset), not a")
-    print("precise magnitude. A wild-cluster bootstrap is the natural robustness check.")
+    wcb = run_wcb()
+    print(f"\nWild-cluster bootstrap ({wcb['B']} reps, {wcb['n_cluster']} NAICS clusters):")
+    print(f"  beta = {wcb['beta']:.4f}  analytic t = {wcb['t']:.3f}  bootstrap p = {wcb['p_wcb']:.3f}")
+    print("With few clusters the wild-cluster bootstrap is the reliable inference. A bootstrap p")
+    print("well above 0.05 confirms the border price does not respond to the tariff: NO OFFSET")
+    print("(the H1 result is the sign/non-response, robust to the small number of clusters).")

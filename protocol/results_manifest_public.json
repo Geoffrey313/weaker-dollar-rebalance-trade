@@ -1,9 +1,10 @@
 {
-  "sha256": "6d2e04e27b25ebbc244141e6cb3bb0c1ed47ec522edb35cc21470bf0fd717088",
+  "sha256": "a51845b39067ff3dd623e37ed8466fe4a104cb7b737b0a0e1f22efadcb5cf571",
   "results": {
     "sector_value_beta": -2.1791,
     "border_price_beta": 0.2383,
     "border_price_p": 0.169,
+    "border_price_wcb_p": 0.141,
     "reduced_form_required_deprec_observed": 3.0,
     "reduced_form_feasible_observed": false,
     "ge_efficiency_theta_dollar_0": 0.7899,

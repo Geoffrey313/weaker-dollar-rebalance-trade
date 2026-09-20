@@ -97,6 +97,50 @@ def twfe_ols(df: pd.DataFrame, y: str, xs: list[str], fe1: str, fe2: str,
     return pd.DataFrame({"beta": beta, "se": se, "t": t, "p": p}, index=list(xs))
 
 
+def _cluster_t(xt: np.ndarray, yv: np.ndarray, clab: np.ndarray, G: int,
+               sxx: float, adj: float) -> tuple[float, float]:
+    """Slope and cluster-robust t of yv on xt in the (already two-way-demeaned) space."""
+    beta = (xt @ yv) / sxx
+    e = yv - beta * xt
+    meat = 0.0
+    for g in range(G):
+        sg = xt[clab == g] @ e[clab == g]
+        meat += sg * sg
+    se = np.sqrt(adj * meat) / sxx
+    return beta, beta / se
+
+
+def wild_cluster_bootstrap(df: pd.DataFrame, y: str, x: str, fe1: str, fe2: str,
+                           cluster: str | None = None, B: int = 1999,
+                           seed: int = 20260921) -> dict:
+    """Restricted wild-cluster bootstrap (Cameron-Gelbach-Miller) p-value for H0: beta_x = 0.
+
+    Reliable inference with FEW clusters (the analytic cluster-robust t is unreliable at ~20
+    clusters). Works in the two-way-demeaned space; imposes the null; resamples cluster-level
+    Rademacher signs on the restricted residuals. Deterministic given `seed`.
+    """
+    cluster = cluster or fe1
+    d = df.dropna(subset=[y, x, fe1, fe2, cluster])
+    c1, u1 = pd.factorize(d[fe1]); c2, u2 = pd.factorize(d[fe2]); k1, k2 = len(u1), len(u2)
+    M = demean_2way(np.column_stack([d[y].to_numpy(float), d[x].to_numpy(float)]), c1, c2, k1, k2)
+    yt, xt = M[:, 0], M[:, 1]
+    clab, uc = pd.factorize(d[cluster]); G = len(uc)
+    N = len(yt); sxx = xt @ xt
+    adj = (G / (G - 1)) * ((N - 1) / (N - (k1 + k2 - 1) - 1))
+    beta_hat, t_hat = _cluster_t(xt, yt, clab, G, sxx, adj)
+
+    # H0: beta=0 -> restricted residual in the demeaned space is yt itself; resample its signs.
+    rng = np.random.default_rng(seed)
+    count = 0
+    for _ in range(B):
+        w = rng.choice((-1.0, 1.0), size=G)[clab]
+        _, t_star = _cluster_t(xt, w * yt, clab, G, sxx, adj)
+        if abs(t_star) >= abs(t_hat):
+            count += 1
+    return {"beta": beta_hat, "t": t_hat, "p_wcb": (count + 1) / (B + 1),
+            "B": B, "n_cluster": G, "n": N}
+
+
 def validate_against_statsmodels() -> None:
     """Smoke-test the estimator against dummy-variable OLS with clustered SE.
 

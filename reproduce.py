@@ -56,10 +56,11 @@ def public_results() -> dict:
     from src.analysis.sector_passthrough import run as sector_run
     results["sector_value_beta"] = _r(sector_run().loc[0, "beta"])
 
-    from src.analysis.price_passthrough import run as price_run
+    from src.analysis.price_passthrough import run as price_run, run_wcb
     pr = price_run()
     results["border_price_beta"] = _r(pr["beta"])
     results["border_price_p"] = _r(pr["p"])
+    results["border_price_wcb_p"] = _r(run_wcb()["p_wcb"], 3)  # small-G reliable inference
 
     from src.analysis.rebalancing_threshold import conclusion1
     obs = conclusion1().pipe(lambda d: d[d["scenario"].str.startswith("observed")]).iloc[0]
