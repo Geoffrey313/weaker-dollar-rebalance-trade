@@ -64,6 +64,39 @@ def twfe_cluster(df: pd.DataFrame, y: str, x: str, fe1: str, fe2: str,
     return {"beta": beta, "se": se, "p": p, "n": N, "n_fe1": k1, "n_fe2": k2, "n_cluster": G}
 
 
+def twfe_ols(df: pd.DataFrame, y: str, xs: list[str], fe1: str, fe2: str,
+             cluster: str | None = None) -> pd.DataFrame:
+    """Two-way FE regression y ~ b*xs | fe1 + fe2 with MULTIPLE regressors, cluster-robust SE.
+
+    Returns a frame indexed by regressor with beta, se, t, p (used for event-study leads/lags).
+    """
+    cluster = cluster or fe1
+    cols = [y] + list(xs)
+    d = df.dropna(subset=cols + [fe1, fe2, cluster])
+    c1, u1 = pd.factorize(d[fe1]); c2, u2 = pd.factorize(d[fe2])
+    k1, k2 = len(u1), len(u2)
+    M = demean_2way(d[cols].to_numpy(float), c1, c2, k1, k2)
+    yt, X = M[:, 0], M[:, 1:]
+    XtX = X.T @ X
+    XtX_inv = np.linalg.pinv(XtX)
+    beta = XtX_inv @ (X.T @ yt)
+    e = yt - X @ beta
+    clab, uc = pd.factorize(d[cluster]); G = len(uc)
+    K = X.shape[1]
+    meat = np.zeros((K, K))
+    for g in range(G):
+        Xg = X[clab == g]
+        sg = Xg.T @ e[clab == g]
+        meat += np.outer(sg, sg)
+    N = len(yt)
+    adj = (G / (G - 1)) * ((N - 1) / (N - (k1 + k2 - 1) - K))
+    V = adj * (XtX_inv @ meat @ XtX_inv)
+    se = np.sqrt(np.diag(V))
+    t = beta / se
+    p = 2 * stats.t.sf(np.abs(t), G - 1)
+    return pd.DataFrame({"beta": beta, "se": se, "t": t, "p": p}, index=list(xs))
+
+
 def validate_against_statsmodels() -> None:
     """Smoke-test the estimator against dummy-variable OLS with clustered SE.
 
@@ -101,5 +134,26 @@ def validate_against_statsmodels() -> None:
     print("twfe validation OK")
 
 
+def validate_multi_against_statsmodels() -> None:
+    """Validate twfe_ols (multiple regressors) against dummy-variable OLS with clustered SE."""
+    import statsmodels.formula.api as smf
+
+    rng = np.random.default_rng(7)
+    idx = pd.MultiIndex.from_product([range(50), range(14)], names=["unit", "time"]).to_frame(index=False)
+    idx = idx[rng.random(len(idx)) > 0.1].reset_index(drop=True)
+    x1 = rng.normal(size=len(idx)); x2 = rng.normal(size=len(idx))
+    y = 1.2 * x1 - 0.7 * x2 + rng.normal(size=50)[idx["unit"]] + rng.normal(size=14)[idx["time"]] \
+        + rng.normal(scale=0.4, size=len(idx))
+    df = idx.assign(x1=x1, x2=x2, y=y, us=idx["unit"].astype(str), ts=idx["time"].astype(str))
+    ours = twfe_ols(df, "y", ["x1", "x2"], "unit", "time")
+    sm = smf.ols("y ~ x1 + x2 + C(us) + C(ts)", data=df).fit(
+        cov_type="cluster", cov_kwds={"groups": df["us"], "use_correction": True})
+    for term in ["x1", "x2"]:
+        assert abs(ours.loc[term, "beta"] - sm.params[term]) < 1e-9
+        assert abs(ours.loc[term, "se"] - sm.bse[term]) < 1e-9
+    print("twfe_ols (multi-regressor) validation OK")
+
+
 if __name__ == "__main__":
     validate_against_statsmodels()
+    validate_multi_against_statsmodels()
