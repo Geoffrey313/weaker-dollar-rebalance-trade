@@ -18,6 +18,7 @@ from src.common.paths import PROJECT_ROOT, DATA_DIR
 from src.data.concordance import attach_exposure
 
 FUNDA_PATH = PROJECT_ROOT / "data" / "wrds" / "compustat_funda.parquet"
+FUNDQ_PATH = PROJECT_ROOT / "data" / "wrds" / "compustat_fundq.parquet"
 EXPOSURE_PATH = DATA_DIR / "china_input_exposure.parquet"
 
 
@@ -36,6 +37,27 @@ def build_firm_exposure_panel(firm_path: str | Path = FUNDA_PATH,
                               exposure_path: str | Path = EXPOSURE_PATH) -> pd.DataFrame:
     """Firm panel with China-input exposure attached by NAICS -> ICIO industry (base year)."""
     firms = load_firm_panel(firm_path)
+    exposure = pd.read_parquet(exposure_path)
+    return attach_exposure(firms, exposure)
+
+
+def load_firm_panel_quarterly(path: str | Path = FUNDQ_PATH) -> pd.DataFrame:
+    """Read the Compustat QUARTERLY panel and add quarterly margin outcomes (saleq>0).
+
+    Quarterly frequency is preferred for the event windows around the 2018-2019 tariff waves.
+    """
+    df = pd.read_parquet(path)
+    df = df[df["saleq"] > 0].copy()
+    df["gross_margin_q"] = (df["saleq"] - df["cogsq"]) / df["saleq"]
+    df["cogs_to_sale_q"] = df["cogsq"] / df["saleq"]
+    df["naics"] = df["naics"].astype("string")
+    return df
+
+
+def build_firm_exposure_panel_quarterly(firm_path: str | Path = FUNDQ_PATH,
+                                        exposure_path: str | Path = EXPOSURE_PATH) -> pd.DataFrame:
+    """Quarterly firm panel with China-input exposure attached by NAICS -> ICIO industry."""
+    firms = load_firm_panel_quarterly(firm_path)
     exposure = pd.read_parquet(exposure_path)
     return attach_exposure(firms, exposure)
 
