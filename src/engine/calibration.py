@@ -25,6 +25,21 @@ class Params:
     epsilon: float = 6.0    # elasticity across varieties (markup epsilon/(epsilon-1)=1.2)
     theta: float = 0.75     # Calvo price stickiness (baseline)
 
+    # --- dynamic (DSGE) parameters ---
+    phi_pi: float = 1.5     # Taylor rule inflation response (Taylor principle)
+    phi_y: float = 0.5      # Taylor rule output-gap response (>=~0.5 needed for determinacy
+                            # given the open-economy net-export coupling in the IS curve)
+    portfolio_cost: float = 0.02  # Phi: portfolio-adjustment cost (pins stationary NFA)
+    rho_tau: float = 0.90   # persistence of the tariff shock
+    rho_z: float = 0.90     # persistence of the engineered-depreciation (UIP) shock
+    import_share: float = 0.65  # US imports as a share of bilateral US-China trade (deficit:
+                                # imports >> exports), so the DCP-muted import channel dominates
+
+    @property
+    def kappa(self) -> float:
+        """Calvo slope of the NK Phillips curve, (1-theta)(1-beta*theta)/theta."""
+        return (1 - self.theta) * (1 - self.beta * self.theta) / self.theta
+
     # --- frictions carrying the mechanism ---
     theta_dollar: float = 0.95  # dollar-price stickiness / dollar-invoicing share (Gopinath/Boz: US-China ~ dollar)
     chi: float = 1.0            # capital-controls wedge (>=0; 0 = open account, large = closed)
