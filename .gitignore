@@ -36,6 +36,8 @@ figures/*.png
 # Elles ne doivent jamais être versionnées (cf. docs/audit — flag licence).
 data/raw/
 data/wrds/
+# Licensed-derived results supplement (firm-level from WRDS) — not published:
+protocol/results_manifest_wrds.json
 *.dta
 *.sas7bdat
 *.zip

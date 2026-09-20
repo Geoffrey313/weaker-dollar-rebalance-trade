@@ -1,5 +1,5 @@
 {
-  "sha256": "190c54dcb346f73535e4bd839fb4c341d20070b12606c95bb3b23d4d7b1b3556",
+  "sha256": "6d2e04e27b25ebbc244141e6cb3bb0c1ed47ec522edb35cc21470bf0fd717088",
   "results": {
     "sector_value_beta": -2.1791,
     "border_price_beta": 0.2383,
@@ -10,8 +10,6 @@
     "ge_efficiency_theta_dollar_095": 0.8916,
     "ge_efficiency_chi_0": 1.7081,
     "ge_efficiency_chi_4": 0.1209,
-    "data_implied_eta": 2.1791,
-    "firm_gross_margin_beta_firm_time": -1.006,
-    "firm_gross_margin_beta_sectorXtime": 0.039
+    "data_implied_eta": 2.1791
   }
 }
