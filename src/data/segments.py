@@ -36,11 +36,10 @@ def build_china_sales_exposure(path: str | Path = GEOSEG_PATH) -> pd.DataFrame:
     df = df[df["sales"] > 0].copy()
     df["year"] = pd.to_datetime(df["datadate"]).dt.year
     df["is_china"] = df["snms"].map(_is_china_segment)
-    grp = df.groupby(["gvkey", "year"])
-    out = grp.apply(lambda g: pd.Series({
-        "china_sales": g.loc[g["is_china"], "sales"].sum(),
-        "total_geoseg_sales": g["sales"].sum(),
-    })).reset_index()
+    df["china_sales_component"] = df["sales"].where(df["is_china"], 0)
+    out = (df.groupby(["gvkey", "year"], as_index=False)
+           .agg(china_sales=("china_sales_component", "sum"),
+                total_geoseg_sales=("sales", "sum")))
     out["china_sales_exposure"] = out["china_sales"] / out["total_geoseg_sales"]
     return out
 

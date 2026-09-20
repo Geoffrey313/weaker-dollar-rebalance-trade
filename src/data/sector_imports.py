@@ -32,7 +32,9 @@ def load_china_imports_hs4(path: str | Path = IMPORTS_PATH) -> pd.DataFrame:
     df["effective_tariff"] = df["duties_usd"] / df["value_usd"]
     df["unit_value"] = np.where(df["qty1"] > 0, df["value_usd"] / df["qty1"], np.nan)
     df["log_value"] = np.log(df["value_usd"])
-    df["log_qty"] = np.where(df["qty1"] > 0, np.log(df["qty1"]), np.nan)
+    df["log_qty"] = np.nan
+    qty_pos = df["qty1"] > 0
+    df.loc[qty_pos, "log_qty"] = np.log(df.loc[qty_pos, "qty1"])
     return df.sort_values(["hs4", "year", "month"]).reset_index(drop=True)
 
 
@@ -40,11 +42,10 @@ if __name__ == "__main__":
     df = load_china_imports_hs4()
     print(f"rows={len(df)} hs4={df['hs4'].nunique()} months={df['year'].min()}-{df['year'].max()}")
     # Effective tariff on Chinese imports should jump across the 2018-2019 waves.
-    monthly = (df.groupby(["year", "month"])
-               .apply(lambda g: g["duties_usd"].sum() / g["value_usd"].sum())
-               .rename("agg_effective_tariff"))
+    monthly_sums = df.groupby(["year", "month"], as_index=False)[["duties_usd", "value_usd"]].sum()
+    monthly_sums["agg_effective_tariff"] = monthly_sums["duties_usd"] / monthly_sums["value_usd"]
     print("\nAggregate effective tariff on China imports (duties/value), by quarter:")
-    q = monthly.reset_index()
+    q = monthly_sums
     q["ym"] = q["year"].astype(str) + "-" + q["month"].astype(str).str.zfill(2)
     for _, r in q[q["month"].isin([1, 4, 7, 10])].iterrows():
         print(f"  {r['ym']}: {r['agg_effective_tariff']:.4f}")

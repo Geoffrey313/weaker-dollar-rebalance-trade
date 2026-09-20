@@ -32,6 +32,16 @@ licensed data are never versioned here (see the policy below).
 - **Prices**: BLS Import/Export Price Indexes (MXP) via `api.bls.gov` (v1 keyless) and `download.bls.gov` (both reachable). FRED (`fred.stlouisfed.org`) is NOT reachable from the build environment, so it is not used.
 - **Quantities / values / effective duties by HS x China x month**: US Census International Trade API (`api.census.gov/.../intltrade/imports/hs`) — provides `GEN_VAL_MO`, `GEN_QY1_MO`, `CAL_DUT_MO`/`DUT_VAL_MO`. **Requires a free Census API key** (register at api.census.gov/data/key_signup.html); store it in `.env.local` as `CENSUS_API_KEY`. This unlocks the product-level tariff (duties/value) and quantity dimensions of the sector panel.
 
+## Cleaning rules for analysis panels
+
+- Compustat margin ratios are kept in raw form and also exposed as winsorized analysis
+  columns suffixed `_w`.
+- Winsorization rule: 1st and 99th percentiles, configured in `src/common/config.py`
+  (`WINSOR_LOWER`, `WINSOR_UPPER`).
+- Event studies should use the `_w` columns by default and report raw-column robustness
+  only if needed.
+- Census quantities can be zero or missing; `log_qty` is missing unless `qty1 > 0`.
+
 ## Layout (to be populated)
 
 ```

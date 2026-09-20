@@ -8,6 +8,12 @@ from __future__ import annotations
 TARIFF_ANCHOR = "2018-2019"          # clean identifying episode
 EXTERNAL_TEST_YEAR = 2025            # used with care (near-universal tariffs)
 
+# --- Empirical cleaning ---------------------------------------------------
+# Margin ratios can explode when Compustat sales are tiny. Keep raw ratios and
+# add winsorized analysis columns using this symmetric rule.
+WINSOR_LOWER = 0.01
+WINSOR_UPPER = 0.99
+
 # --- China-input exposure (ICIO) ------------------------------------------
 BASE_YEAR = 2017                     # exposure fixed pre-episode
 ROBUSTNESS_YEARS = (2015, 2016, 2017)  # averaged in robustness
