@@ -24,6 +24,7 @@ licensed data are never versioned here (see the policy below).
 | `xwalk_isic4_naics.csv` | Starter ICIO 2023 industry to NAICS prefix concordance | Agriculture, mining and manufacturing coverage for joining Compustat `naics` to ICIO industries |
 | `tariffs_bown_timeline.csv` | Chad Bown / PIIE, `us-china-trade-war-tariffs.xlsx` (Panel a), raw kept in `data/raw/` (gitignored) | Trade-weighted average tariff rates by dated action (US-on-China, China-on-US, vs ROW), 2018-2025; the episode event calendar |
 | `tariffs_bown_coverage.csv` | Chad Bown / PIIE (Panel b) | Share of trade subject to the tariffs, by date |
+| `import_price_china_bls.csv` | BLS Import/Export Price Indexes, `EIUCOCHN*` series via `api.bls.gov` v1 | Monthly China-origin import price index by NAICS, 2015-2024 (pass-through outcome) |
 
 ## Data access notes (product/sector panel)
 
