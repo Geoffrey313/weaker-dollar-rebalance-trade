@@ -47,6 +47,28 @@ def run() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def run_tariff_transform() -> pd.DataFrame:
+    """Compare the tariff regressor in levels and log points.
+
+    The level specification is the main reduced form used throughout the sector results.
+    The log1p specification is useful for the Phase 4 elasticity mapping because an Armington
+    demand equation is naturally written in log tariff-inclusive prices, ln(1+tau).
+    """
+    df = build_panel()
+    df["log1p_effective_tariff"] = np.log1p(df["effective_tariff"])
+    rows = []
+    for x, label in [
+        ("effective_tariff", "tau = duties / customs value"),
+        ("log1p_effective_tariff", "log(1+tau)"),
+    ]:
+        d = df[np.isfinite(df["log_value"]) & np.isfinite(df[x])]
+        rows.append({
+            "tariff_regressor": label,
+            **twfe_cluster(d, "log_value", x, "hs4", "period"),
+        })
+    return pd.DataFrame(rows)
+
+
 def run_value_thresholds() -> pd.DataFrame:
     """Robustness to dropping very small trade-flow cells."""
     df = build_panel()
@@ -81,6 +103,9 @@ if __name__ == "__main__":
     print("Sector pass-through, TWFE (HS4 + month FE, SE clustered by HS4)")
     print("  z ~ beta * effective_tariff   (tau = duties / customs value)\n")
     print(res[["outcome", "beta", "se", "p", "n", "n_fe1", "n_fe2", "n_cluster"]].to_string(index=False))
+    print("\nTariff-regressor transform check")
+    tr = run_tariff_transform()
+    print(tr[["tariff_regressor", "beta", "se", "p", "n"]].to_string(index=False))
     print("\nRobustness: drop tiny value cells")
     rob = run_value_thresholds()
     print(rob[["min_value_usd", "beta", "se", "p", "n"]].to_string(index=False))
