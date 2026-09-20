@@ -16,10 +16,10 @@ from src.figures.style import apply_style, save, BLUE, ORANGE, MUTED, LANGS
 import matplotlib.pyplot as plt
 
 LABELS = {
-    "en": {"title": "The tariff rises but the dollar border price stays flat (no offset)",
+    "en": {"title": "The tariff rises, without a border-price offset",
            "x": "Quarter", "y_tar": "Effective tariff", "y_price": "Import price index (USD)",
            "onset": "2018 tariff waves"},
-    "fr": {"title": "Le tarif monte mais le prix frontiere en dollars reste plat (pas d'offset)",
+    "fr": {"title": "Le tarif monte, sans offset du prix frontiere",
            "x": "Trimestre", "y_tar": "Tarif effectif", "y_price": "Indice de prix a l'import (USD)",
            "onset": "vagues tarifaires 2018"},
 }

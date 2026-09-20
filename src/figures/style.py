@@ -7,13 +7,16 @@ by code (never hand-edited) into the manuscript figure folders, in the manuscrip
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+from src.common.paths import PROJECT_ROOT
+
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/weaker-dollar-matplotlib")
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
-from src.common.paths import PROJECT_ROOT
 
 # Validated categorical palette (dataviz reference, light surface).
 BLUE = "#2a78d6"
