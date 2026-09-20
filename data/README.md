@@ -25,6 +25,7 @@ licensed data are never versioned here (see the policy below).
 | `tariffs_bown_timeline.csv` | Chad Bown / PIIE, `us-china-trade-war-tariffs.xlsx` (Panel a), raw kept in `data/raw/` (gitignored) | Trade-weighted average tariff rates by dated action (US-on-China, China-on-US, vs ROW), 2018-2025; the episode event calendar |
 | `tariffs_bown_coverage.csv` | Chad Bown / PIIE (Panel b) | Share of trade subject to the tariffs, by date |
 | `import_price_china_bls.csv` | BLS Import/Export Price Indexes, `EIUCOCHN*` series via `api.bls.gov` v1 | Monthly China-origin import price index by NAICS, 2015-2024 (pass-through outcome) |
+| `china_imports_hs4.parquet` | US Census International Trade API (`intltrade/imports/hs`, China=5700), pulled by the gitignored `data_download/pull_census_imports.py` | US imports from China by HS4 x month, 2015-2021: value, quantity+unit, calculated duties → effective tariff `duties/value` (the product-level `tau_{p,t}`) |
 
 ## Data access notes (product/sector panel)
 
