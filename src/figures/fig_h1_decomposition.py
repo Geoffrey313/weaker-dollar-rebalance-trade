@@ -48,7 +48,7 @@ def make(lang: str) -> None:
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7.2, 4.6), sharex=True)
     ax1.plot(x, d["tariff"], color=ORANGE, lw=2.0, marker="o", ms=3)
-    ax1.set_ylabel(L["y_tar"]); ax1.set_title(L["title"], loc="left")
+    ax1.set_ylabel(L["y_tar"])  # no internal title (paper-writing-rules 2.2; title in the LaTeX caption)
     ax2.plot(x, d["price"], color=BLUE, lw=2.0, marker="o", ms=3)
     ax2.set_ylabel(L["y_price"]); ax2.set_xlabel(L["x"])
     for ax in (ax1, ax2):

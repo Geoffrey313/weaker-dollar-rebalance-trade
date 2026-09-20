@@ -51,7 +51,7 @@ def make(lang: str) -> None:
     # sparse quarter ticks (annual)
     ticks = [i for i, q in enumerate(d["q"]) if q.endswith("Q1")]
     ax.set_xticks(ticks); ax.set_xticklabels([d["q"].iloc[i][:4] for i in ticks])
-    ax.set_xlabel(L["x"]); ax.set_ylabel(L["y"]); ax.set_title(L["title"], loc="left")
+    ax.set_xlabel(L["x"]); ax.set_ylabel(L["y"])  # no internal title (paper-writing-rules 2.2)
     save(fig, "fig_event_study", lang)
 
 

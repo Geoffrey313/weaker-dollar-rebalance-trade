@@ -46,8 +46,7 @@ def make(lang: str) -> None:
     ax2.annotate(L["coll"], xy=(2.5, ch["efficiency"].iloc[-1]),
                  xytext=(1.6, ch["efficiency"].max() * 0.55), color=BLUE, fontsize=9)
 
-    fig.suptitle(L["title"], x=0.02, ha="left", fontsize=11)
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.tight_layout()  # no internal title (paper-writing-rules 2.2; title in the LaTeX caption)
     save(fig, "fig_ge_mechanism", lang)
 
 
