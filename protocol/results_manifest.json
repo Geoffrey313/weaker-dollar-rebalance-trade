@@ -1,0 +1,17 @@
+{
+  "sha256": "190c54dcb346f73535e4bd839fb4c341d20070b12606c95bb3b23d4d7b1b3556",
+  "results": {
+    "sector_value_beta": -2.1791,
+    "border_price_beta": 0.2383,
+    "border_price_p": 0.169,
+    "reduced_form_required_deprec_observed": 3.0,
+    "reduced_form_feasible_observed": false,
+    "ge_efficiency_theta_dollar_0": 0.7899,
+    "ge_efficiency_theta_dollar_095": 0.8916,
+    "ge_efficiency_chi_0": 1.7081,
+    "ge_efficiency_chi_4": 0.1209,
+    "data_implied_eta": 2.1791,
+    "firm_gross_margin_beta_firm_time": -1.006,
+    "firm_gross_margin_beta_sectorXtime": 0.039
+  }
+}
