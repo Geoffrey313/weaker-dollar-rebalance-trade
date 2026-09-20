@@ -62,3 +62,44 @@ def twfe_cluster(df: pd.DataFrame, y: str, x: str, fe1: str, fe2: str,
     t = beta / se
     p = 2 * stats.t.sf(abs(t), G - 1)
     return {"beta": beta, "se": se, "p": p, "n": N, "n_fe1": k1, "n_fe2": k2, "n_cluster": G}
+
+
+def validate_against_statsmodels() -> None:
+    """Smoke-test the estimator against dummy-variable OLS with clustered SE.
+
+    This keeps the validation claim versioned without making statsmodels part of the
+    estimator itself. The synthetic panel is deterministic and unbalanced enough to exercise
+    the alternating-projection within transformation.
+    """
+    import statsmodels.formula.api as smf
+
+    rng = np.random.default_rng(20260921)
+    n_firms, n_times = 45, 16
+    idx = pd.MultiIndex.from_product(
+        [range(n_firms), range(n_times)], names=["unit", "time"]
+    ).to_frame(index=False)
+    idx = idx[rng.random(len(idx)) > 0.12].reset_index(drop=True)
+    unit_fe = rng.normal(size=n_firms)
+    time_fe = rng.normal(size=n_times)
+    x = rng.normal(size=len(idx)) + 0.15 * idx["unit"].to_numpy() / n_firms
+    y = 1.75 * x + unit_fe[idx["unit"].to_numpy()] + time_fe[idx["time"].to_numpy()]
+    y = y + rng.normal(scale=0.5, size=len(idx))
+    df = idx.assign(x=x, y=y, unit_s=idx["unit"].astype(str), time_s=idx["time"].astype(str))
+
+    ours = twfe_cluster(df, "y", "x", "unit", "time")
+    sm = smf.ols("y ~ x + C(unit_s) + C(time_s)", data=df).fit(
+        cov_type="cluster",
+        cov_kwds={"groups": df["unit_s"], "use_correction": True},
+    )
+    beta_diff = abs(ours["beta"] - sm.params["x"])
+    se_diff = abs(ours["se"] - sm.bse["x"])
+    print(f"ours: beta={ours['beta']:.8f} se={ours['se']:.8f}")
+    print(f"sm   : beta={sm.params['x']:.8f} se={sm.bse['x']:.8f}")
+    print(f"diff : beta={beta_diff:.3g} se={se_diff:.3g}")
+    assert beta_diff < 1e-10
+    assert se_diff < 1e-10
+    print("twfe validation OK")
+
+
+if __name__ == "__main__":
+    validate_against_statsmodels()
