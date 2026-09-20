@@ -1,0 +1,90 @@
+# .gitignore — politique de publication
+# Source des règles : skill research-repo-rules §6.
+# Principe : le dépôt PUBLIÉ ne contient QUE ce qui reproduit les résultats empiriques
+# (src/, reproduce.py, données TRANSFORMÉES redistribuables de data/, data/README.md,
+#  README, .env.example, requirements). Tout le reste vit dans le workspace mais reste ignoré.
+
+# --- Secrets et configuration locale (JAMAIS committé) ---
+.env
+.env.local
+.env.*.local
+*.local.env
+*.pem
+*.key
+*.pgpass
+.pgpass
+# .env.example EST publié (clés attendues, valeurs vides) :
+!.env.example
+
+# --- Tout le dossier docs/ (instruction projet) ---
+# Contient le sujet de recherche (docs/research/) et les sorties d'audit (docs/audit/) :
+# matériel de travail interne, jamais publié.
+docs/
+
+# --- Manuscrits et versions journal (jamais publiés) ---
+manuscript/
+
+# --- Résultats générés (reproductibles par le code, jamais stockés) ---
+results/
+outputs/
+figures/*.pdf
+figures/*.png
+*.out.csv
+
+# --- Données brutes / sous licence / non redistribuables ---
+# ATTENTION : les données WRDS/Compustat sont sous licence et NON redistribuables.
+# Elles ne doivent jamais être versionnées (cf. docs/audit — flag licence).
+data/raw/
+data/wrds/
+*.dta
+*.sas7bdat
+*.zip
+# Exception : le README des données reste publié.
+!data/README.md
+
+# --- Scripts d'acquisition/téléchargement des données brutes (hors reproduction) ---
+data_download/
+scripts/download_*
+scripts/fetch_*
+
+# --- Tests unitaires (exclus de la publication) ---
+tests/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Artefacts LaTeX ---
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.out
+*.toc
+*.lof
+*.lot
+*.synctex.gz
+
+# --- OS / éditeurs ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# --- Divers travail / brouillons / scratch ---
+scratch/
+tmp/
+*.tmp
