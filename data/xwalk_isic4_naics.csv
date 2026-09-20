@@ -1,0 +1,38 @@
+icio_industry,icio_label,naics_prefix,naics_label,note
+D01T02,"Agriculture, hunting, forestry",111,Crop production,starter
+D01T02,"Agriculture, hunting, forestry",112,Animal production,starter
+D01T02,"Agriculture, hunting, forestry",113,Forestry and logging,starter
+D03,Fishing and aquaculture,114,"Fishing, hunting and trapping",starter
+D05T06,Mining and quarrying energy,211,Oil and gas extraction,starter
+D05T06,Mining and quarrying energy,2121,Coal mining,starter
+D07T08,Mining and quarrying non-energy,2122,Metal ore mining,starter
+D07T08,Mining and quarrying non-energy,2123,Nonmetallic mineral mining,starter
+D09,Mining support service,213,Support activities for mining,starter
+D10T12,"Food, beverages, tobacco",311,Food manufacturing,starter
+D10T12,"Food, beverages, tobacco",312,Beverage and tobacco product,starter
+D13T15,"Textiles, apparel, leather",313,Textile mills,starter
+D13T15,"Textiles, apparel, leather",314,Textile product mills,starter
+D13T15,"Textiles, apparel, leather",315,Apparel manufacturing,starter
+D13T15,"Textiles, apparel, leather",316,Leather and allied product,starter
+D16,Wood and products of wood,321,Wood product manufacturing,starter
+D17T18,Paper products and printing,322,Paper manufacturing,starter
+D17T18,Paper products and printing,323,Printing and related support,starter
+D19,Coke and refined petroleum,324,Petroleum and coal products,starter
+D20,Chemicals,325,Chemical manufacturing,"starter; pharma 3254 split to D21"
+D21,Pharmaceuticals,3254,Pharmaceutical and medicine,starter
+D22,Rubber and plastics products,326,Plastics and rubber products,starter
+D23,Other non-metallic mineral,327,Nonmetallic mineral product,starter
+D24,Basic metals,331,Primary metal manufacturing,starter
+D25,Fabricated metal products,332,Fabricated metal product,starter
+D26,"Computer, electronic, optical",334,Computer and electronic product,starter
+D27,Electrical equipment,335,"Electrical equipment, appliance",starter
+D28,Machinery and equipment nec,333,Machinery manufacturing,starter
+D29,"Motor vehicles, trailers",3361,Motor vehicle manufacturing,starter
+D29,"Motor vehicles, trailers",3362,Motor vehicle body and trailer,starter
+D29,"Motor vehicles, trailers",3363,Motor vehicle parts,starter
+D30,Other transport equipment,3364,Aerospace product and parts,starter
+D30,Other transport equipment,3365,Railroad rolling stock,starter
+D30,Other transport equipment,3366,Ship and boat building,starter
+D30,Other transport equipment,3369,Other transportation equipment,starter
+D31T33,Manufacturing nec; repair,337,Furniture and related product,starter
+D31T33,Manufacturing nec; repair,339,Miscellaneous manufacturing,starter
