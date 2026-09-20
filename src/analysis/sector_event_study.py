@@ -6,8 +6,10 @@ HS4 x quarter level:
     log V_{p,q} = alpha_p + delta_q + sum_{k != ref} beta_k * (Dtau_p x 1[quarter = k]) + u_{p,q}
 
 with product (HS4) and calendar-quarter fixed effects and SE clustered by product (twfe_ols).
-Dtau_p is the product's tariff-shock intensity, fixed pre-episode: mean effective tariff in
-2019 minus mean in 2017. The omitted reference quarter is 2018Q2 (just before List 1, 2018-07).
+Dtau_p is the product's REALIZED (ex-post) tariff-shock intensity, fixed per product: mean
+effective tariff in 2019 minus mean in 2017. It is a realized treatment intensity by product
+(not a statutory instrument), which is the appropriate object for a continuous-treatment event
+study. The omitted reference quarter is 2018Q2 (just before List 1, 2018-07).
 
 beta_k for pre-episode quarters tests parallel trends (should be flat ~ 0); beta_k for post
 quarters traces the dynamic trade contraction. This is the model-independent dynamic core of

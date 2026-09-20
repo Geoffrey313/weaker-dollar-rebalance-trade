@@ -26,6 +26,7 @@ licensed data are never versioned here (see the policy below).
 | `tariffs_bown_coverage.csv` | Chad Bown / PIIE (Panel b) | Share of trade subject to the tariffs, by date |
 | `import_price_china_bls.csv` | BLS Import/Export Price Indexes, `EIUCOCHN*` series via `api.bls.gov` v1 | Monthly China-origin import price index by NAICS, 2015-2024 (pass-through outcome) |
 | `china_imports_hs4.parquet` | US Census International Trade API (`intltrade/imports/hs`, China=5700), pulled by the gitignored `data_download/pull_census_imports.py` | US imports from China by HS4 x month, 2015-2021: value, quantity+unit, calculated duties → effective tariff `duties/value` (the product-level `tau_{p,t}`) |
+| `china_imports_naics.parquet` | US Census (`intltrade/imports/naics`, NA3+NA4, China=5700), pulled by the gitignored `data_download/pull_census_naics.py` | US imports from China by NAICS x month, 2015-2021: value + calculated duties → effective tariff by NAICS, to merge with the BLS NAICS price index (no HS↔NAICS bridge needed) |
 
 ## Data access notes (product/sector panel)
 
