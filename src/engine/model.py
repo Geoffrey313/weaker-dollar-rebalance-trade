@@ -23,6 +23,13 @@ balance to a real depreciation of the RMB is
     form is calibrated, not estimated.
   * gamma: openness scaling (import share).
 
+NOTE (2026-09-21): this reduced form is a transparent analytical bound. Its reading that the
+dollar-invoicing friction theta_dollar is the dominant blocker is SUPERSEDED IN EMPHASIS by the
+general-equilibrium model (src/engine/dsge.py): in GE the closed capital account (chi) is the
+binding friction, while theta_dollar is roughly neutral for rebalancing (a weaker dollar still
+boosts US exports via mechanical currency conversion). DCP's role is tariff incidence, not
+blocking rebalancing. See docs/audit/03-mechanism-reconciliation.md.
+
 Rebalancing is FEASIBLE if the depreciation needed to close the observed imbalance,
 |de| = imbalance0 / R, stays within the bounded-cost maximum max_depreciation. Equivalently,
 R must exceed R_min = imbalance0 / max_depreciation. The (theta_dollar, chi) locus where
