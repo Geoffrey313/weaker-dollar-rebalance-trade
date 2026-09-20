@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.common import config as C
 from src.common.paths import DATA_DIR
 
 XWALK_PATH = DATA_DIR / "xwalk_isic4_naics.csv"
@@ -42,17 +43,37 @@ def naics_to_icio(naics: str | int | float, crosswalk: pd.DataFrame | None = Non
     return None
 
 
+def _exposure_for_join(exposure: pd.DataFrame, share_col: str) -> pd.DataFrame:
+    """Return one industry-level exposure row per industry for firm joins."""
+    if share_col not in exposure.columns:
+        raise KeyError(f"Exposure table is missing required column {share_col!r}.")
+    if "year" in exposure.columns:
+        exposure = exposure[exposure["year"] == C.BASE_YEAR].copy()
+        if exposure.empty:
+            raise ValueError(f"Exposure table has no rows for BASE_YEAR={C.BASE_YEAR}.")
+    if exposure["industry"].duplicated().any():
+        dupes = sorted(exposure.loc[exposure["industry"].duplicated(), "industry"].unique())
+        raise ValueError(f"Exposure table has duplicate industries after filtering: {dupes[:10]}")
+    cols = ["industry", share_col]
+    for optional in ("year", "china_origin_codes"):
+        if optional in exposure.columns:
+            cols.append(optional)
+    return exposure[cols]
+
+
 def attach_exposure(firms: pd.DataFrame, exposure: pd.DataFrame,
-                    naics_col: str = "naics", share_col: str = "china_input_share_base") -> pd.DataFrame:
+                    naics_col: str = "naics", share_col: str = "china_input_share") -> pd.DataFrame:
     """Attach the industry-level China-input share to a firm table via NAICS -> ICIO industry.
 
     `firms` must have `naics_col`; `exposure` must have columns 'industry' and `share_col`.
-    Returns `firms` with added columns icio_industry and `share_col`.
+    If `exposure` is a long year-industry table, it is filtered to config.BASE_YEAR before
+    joining. Returns `firms` with added columns icio_industry and the exposure columns.
     """
     xwalk = load_crosswalk()
     out = firms.copy()
     out["icio_industry"] = out[naics_col].map(lambda n: naics_to_icio(n, xwalk))
-    out = out.merge(exposure[["industry", share_col]],
+    join_exposure = _exposure_for_join(exposure, share_col)
+    out = out.merge(join_exposure,
                     left_on="icio_industry", right_on="industry", how="left")
     return out.drop(columns=["industry"])
 

@@ -16,6 +16,13 @@ licensed data are never versioned here (see the policy below).
 | Census / BEA | trade flows / quantities | Yes (public) | versioned |
 | FRED / BIS / IMF | RMB/USD, REER, macro | Yes (public) | versioned |
 
+## Versioned transformed inputs
+
+| File | Provenance | Contents |
+|---|---|---|
+| `china_input_exposure.parquet` | OECD ICIO 2023 regular fallback, `2017_SML.csv` from the 2016-2020 block served by `stats.oecd.org/wbos/fileview2.aspx`; raw zip/CSV kept in `data/raw/` and gitignored | Long year-industry table for 2017, 45 ICIO industries, direct China-input exposure (`china_input_share`), `china_origin_codes=CHN` |
+| `xwalk_isic4_naics.csv` | Starter ICIO 2023 industry to NAICS prefix concordance | Agriculture, mining and manufacturing coverage for joining Compustat `naics` to ICIO industries |
+
 ## Layout (to be populated)
 
 ```

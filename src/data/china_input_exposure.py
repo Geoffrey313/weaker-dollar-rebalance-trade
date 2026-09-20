@@ -20,9 +20,9 @@ plus final-demand columns and value-added rows, which are excluded here.
 
 Output
 ------
-A tidy table [year, industry, china_intermediate, total_intermediate, china_input_share],
-versioned as data/china_input_exposure.parquet. It is assigned to firms via the ISIC4<->NAICS
-concordance (see concordance.py) in the analysis layer.
+A long tidy table [year, industry, china_intermediate, total_intermediate,
+china_input_share], versioned as data/china_input_exposure.parquet. The concordance
+layer filters it to the base year before assigning exposure to firms.
 
 Assumption to state in the paper: exposure is fixed at a pre-episode base year (config.BASE_YEAR),
 so it is predetermined with respect to the 2018-2019 tariffs.
@@ -134,9 +134,10 @@ def base_and_robustness(long: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_and_save(year_paths: dict[int, str | Path], out_path: str | Path | None = None) -> tuple[pd.DataFrame, Path]:
-    """Compute the long exposure frame for `year_paths` and write it to parquet.
+    """Compute the long year-industry exposure frame for `year_paths` and write it to parquet.
 
-    Default output: data/china_input_exposure.parquet (versioned; the transformed public input).
+    Default output: data/china_input_exposure.parquet. It remains long-form even if only
+    the base year is available; downstream firm joins filter to config.BASE_YEAR.
     """
     from src.common.paths import DATA_DIR
     long = build_exposure(year_paths)
