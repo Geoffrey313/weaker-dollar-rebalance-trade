@@ -12,10 +12,10 @@ published here (see the data policy below).
 
 The paper studies the limits of the exchange-rate channel as a tool for trade rebalancing.
 Under dominant-currency pricing, a controlled Chinese capital account, and safe-asset
-recycling, an engineered dollar depreciation does not deliver the textbook expenditure
-switching. A two-country New Open Economy Macro model with dominant-currency pricing,
-incomplete markets, and a capital-controls wedge is combined with firm-level and
-product/sector evidence around the 2018-2019 tariff waves (2025 as an external test).
+recycling, an engineered dollar depreciation may fail to deliver the textbook expenditure
+switching. The current repository combines product/sector evidence around the 2018-2019
+tariff waves with a calibrated reduced-form DCP rebalancing block; the full dynamic Ramsey
+GE solve is a later model increment.
 
 ## Research questions
 
