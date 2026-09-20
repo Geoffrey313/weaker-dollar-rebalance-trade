@@ -133,6 +133,18 @@ def base_and_robustness(long: pd.DataFrame) -> pd.DataFrame:
     return base.merge(rob, on="industry", how="outer").sort_values("industry").reset_index(drop=True)
 
 
+def build_and_save(year_paths: dict[int, str | Path], out_path: str | Path | None = None) -> tuple[pd.DataFrame, Path]:
+    """Compute the long exposure frame for `year_paths` and write it to parquet.
+
+    Default output: data/china_input_exposure.parquet (versioned; the transformed public input).
+    """
+    from src.common.paths import DATA_DIR
+    long = build_exposure(year_paths)
+    out = Path(out_path) if out_path is not None else DATA_DIR / "china_input_exposure.parquet"
+    long.to_parquet(out, index=False)
+    return long, out
+
+
 if __name__ == "__main__":
     # Self-test on a tiny synthetic 2-country (USA, CHN) x 2-industry ICIO matrix,
     # so the computation is verifiable without the multi-GB real file.

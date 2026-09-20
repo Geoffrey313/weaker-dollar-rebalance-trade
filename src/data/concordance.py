@@ -60,7 +60,7 @@ def attach_exposure(firms: pd.DataFrame, exposure: pd.DataFrame,
 if __name__ == "__main__":
     xw = load_crosswalk()
     print(f"crosswalk rows: {len(xw)}, ICIO industries covered: {xw['icio_industry'].nunique()}")
-    checks = {"334111": "D26", "325412": "D21", "325199": "D20", "336110": "D29", "311111": "D10T12"}
+    checks = {"334111": "C26", "325412": "C21", "325199": "C20", "336110": "C29", "311111": "C10T12"}
     for naics, expected in checks.items():
         got = naics_to_icio(naics, xw)
         status = "OK" if got == expected else "MISMATCH"
