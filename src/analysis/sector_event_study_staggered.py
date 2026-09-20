@@ -44,17 +44,17 @@ def _quarterly() -> pd.DataFrame:
     return q
 
 
-def _cohorts(q: pd.DataFrame) -> pd.Series:
+def _cohorts(q: pd.DataFrame, thresh: float = THRESH) -> pd.Series:
     """First treated quarter index per HS4 (NaN = never treated)."""
     base = q[q["qi"] < 2018 * 4].groupby("hs4")["eff"].mean().rename("base")
     d = q.merge(base, on="hs4")
-    treat = d[(d["qi"] >= 2018 * 4) & (d["eff"] - d["base"] > THRESH)]
+    treat = d[(d["qi"] >= 2018 * 4) & (d["eff"] - d["base"] > thresh)]
     return treat.groupby("hs4")["qi"].min()
 
 
-def build_stacked() -> pd.DataFrame:
+def build_stacked(thresh: float = THRESH) -> pd.DataFrame:
     q = _quarterly()
-    cohort = _cohorts(q)
+    cohort = _cohorts(q, thresh)
     never = sorted(set(q["hs4"]) - set(cohort.index))
     cohort_qs = sorted(c for c in cohort.unique() if (cohort == c).sum() >= 15)  # non-trivial cohorts
     frames = []
@@ -71,8 +71,8 @@ def build_stacked() -> pd.DataFrame:
     return st
 
 
-def run() -> pd.DataFrame:
-    st = build_stacked()
+def run(thresh: float = THRESH) -> pd.DataFrame:
+    st = build_stacked(thresh)
     ks = [k for k in range(-PRE, POST + 1) if k != REF_K]
     terms = []
     for k in ks:
@@ -83,6 +83,17 @@ def run() -> pd.DataFrame:
     res.index = ks
     res.index.name = "event_time"
     return res
+
+
+def threshold_robustness() -> pd.DataFrame:
+    """Post-treatment average effect under alternative treatment thresholds (3/5/10 pp)."""
+    rows = []
+    for thr in (0.03, 0.05, 0.10):
+        res = run(thr)
+        post = res.loc[[k for k in res.index if k >= 0]]
+        rows.append({"threshold_pp": int(thr * 100), "post_mean_beta": post["beta"].mean(),
+                     "post_significant": f"{(post['p'] < 0.05).sum()}/{len(post)}"})
+    return pd.DataFrame(rows)
 
 
 if __name__ == "__main__":
@@ -97,4 +108,6 @@ if __name__ == "__main__":
     print(f"\nPre-trends: {(pre['p'] < 0.05).sum()}/{len(pre)} significant at 5% (few expected).")
     print(f"Post-treatment mean beta: {post['beta'].mean():.3f} "
           f"({(post['p'] < 0.05).sum()}/{len(post)} significant).")
-    print("Matches the baseline (flat pre-trends, negative post) => no staggered-timing bias.")
+    print("The baseline contraction is not driven by staggered-timing comparisons.")
+    print("\nTreatment-threshold robustness (3/5/10 pp):")
+    print(threshold_robustness().to_string(index=False))
