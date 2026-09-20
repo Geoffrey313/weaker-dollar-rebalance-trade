@@ -31,8 +31,8 @@ def _sums(df: pd.DataFrame, beta: float) -> dict:
     disc = beta ** np.arange(len(df))
     nx_cum = float(np.sum(disc * df["nx"].to_numpy()))
     gap_cum = float(np.sum(disc * np.abs(df["y"].to_numpy())))
-    peak_e = float(df["e"].abs().max())
-    return {"peak_deprec": peak_e, "NX_cum": nx_cum, "GAP_cum": gap_cum,
+    peak_fx = float(df["e"].abs().max())  # peak RMB appreciation (weaker-dollar shock)
+    return {"peak_rmb_appreciation": peak_fx, "NX_cum": nx_cum, "GAP_cum": gap_cum,
             "efficiency": nx_cum / gap_cum if gap_cum > 0 else np.inf}
 
 

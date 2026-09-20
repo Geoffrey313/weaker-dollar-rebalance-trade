@@ -4,17 +4,19 @@ A calibrated log-linear open-economy NK model solved with the validated Klein so
 (src/engine/linre). It is deliberately compact (not the full 20-equation NOEM) but genuine:
 it carries the mechanism the paper needs — dollar-price stickiness (DCP), a modified UIP with a
 capital-controls/portfolio wedge, NFA dynamics, and a bilateral net-export block — so we can
-ask the dynamic version of Conclusion 1: does an engineered RMB depreciation improve the
+ask the dynamic version of Conclusion 1: does an engineered weaker dollar (RMB appreciation) improve the
 bilateral balance, and at what output-gap cost, as theta_dollar and chi vary?
 
 Variables x_t = [ d, pm, tau, z | y, pi, e, nx ] (deviations from steady state):
   states k (predetermined): d = NFA, pm = dollar import price (DCP, sticky), tau = tariff (AR1),
     z = engineered-depreciation / UIP shock (AR1).
-  jumps u: y = home output gap, pi = home inflation, e = RMB value (e<0 = RMB depreciation),
+  jumps u: y = home output gap, pi = home inflation, e = RMB value (e>0 = RMB appreciation = weaker dollar),
     nx = bilateral net exports.
 
-Sign convention: e is the RMB value, so a NEGATIVE e is an RMB depreciation (framework sign).
-A positive z lowers E_t e_{t+1} (engineers a depreciation).
+Sign convention: e is the RMB value (the framework's E, USD per RMB). e>0 = RMB appreciation =
+WEAKER DOLLAR; e<0 = RMB depreciation. As solved, the z shock engineers a weaker dollar:
+z=+1 raises the equilibrium e (RMB appreciates), i.e. the Mar-a-Lago experiment. (Verified in
+the IRF: z=+1 -> e>0.)
 
 Equations (A E_t x_{t+1} = B x_t):
   d_{t+1} = (1/beta) d_t + nx_t                                   (NFA accumulation)
@@ -109,7 +111,8 @@ if __name__ == "__main__":
     t = irf("tau", periods=6)
     print(t[["tau", "pm", "nx", "y", "pi", "e"]].head(6).to_string())
 
-    print("\nIRF to an ENGINEERED DEPRECIATION (z=+1 -> RMB depreciates, e<0):")
-    print("  expect e<0; under DCP (theta_$ high) pm barely moves and nx improves little")
+    print("\nIRF to an ENGINEERED WEAKER DOLLAR (z=+1 -> RMB appreciates, e>0):")
+    print("  under DCP the weaker dollar still boosts US exports (RMB price of US goods falls),")
+    print("  while the import channel is muted (pm sticky); nx improves, at an output-gap cost")
     z = irf("z", periods=6)
     print(z[["z", "e", "pm", "nx", "y"]].head(6).to_string())
