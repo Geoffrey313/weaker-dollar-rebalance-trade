@@ -76,6 +76,11 @@ def public_results() -> dict:
 
     from src.analysis.integration import data_implied_eta
     results["data_implied_eta"] = _r(data_implied_eta())
+
+    # Staggered-robust (binarised stacked DiD) event-study post-treatment average.
+    from src.analysis.sector_event_study_staggered import run as staggered_run
+    sres = staggered_run()
+    results["staggered_post_mean_beta"] = _r(sres.loc[[k for k in sres.index if k >= 0], "beta"].mean(), 3)
     return results
 
 
