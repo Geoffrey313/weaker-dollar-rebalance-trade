@@ -1,9 +1,8 @@
 # Can a Weaker Dollar Rebalance Trade?
 
-*Dominant-Currency Pricing, Capital Controls, and the Limits of the Mar-a-Lago Strategy*
-
-**Authors.** Geoffrey Ducournau · Junlin Li · Jallal [family name to confirm]
-(Qatar University affiliations to confirm).
+**Authors.** Geoffrey Ducournau (Dimtech S.A.S) · Jalal Qanas (College of Business and
+Economics, Qatar University) · Jinliang Li (School of Economics and Management, Tsinghua
+University, Beijing, China).
 
 This repository reproduces the empirical and structural results of the paper. The
 manuscripts, the generated results, and the data-acquisition code are kept in the working tree
@@ -23,6 +22,27 @@ cost. The mechanism ranking comes from the general-equilibrium model: the bindin
 the closed Chinese capital account rather than dollar invoicing. Dominant-currency pricing
 shapes who bears the tariff; capital controls decide whether the exchange rate can rebalance
 trade.
+
+## Main results at a glance
+
+**The tariff falls on United States importers, and trade adjusts on quantities.**
+
+![The effective tariff and the dollar border price of imports from China](assets/fig_h1_decomposition.png)
+
+*Figure 1. The effective tariff (upper) and the dollar border price of imports from China
+(lower). The border price holds flat as the tariff climbs, so Chinese exporters did not cut their
+dollar prices.*
+
+**Capital controls, not dollar invoicing, are the binding friction.**
+
+![Rebalancing efficiency against dollar invoicing and capital controls](assets/fig_ge_mechanism.png)
+
+*Figure 2. Rebalancing efficiency against the dollar-invoicing friction (left) and the
+capital-controls wedge (right). Efficiency barely moves as invoicing rises but collapses as the
+capital account closes.*
+
+These figures are illustrative copies of Figures 1 and 2 of the paper; `python reproduce.py`
+regenerates the underlying figures.
 
 ## Research questions
 
@@ -103,4 +123,4 @@ available on request.
 
 ## Contact
 
-G.ducournau.voisin@gmail.com
+geoffrey.ducournau@111dimtech.com

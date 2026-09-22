@@ -35,14 +35,15 @@ TXT = {
         "industry": "Industry", "clusters": "Clusters", "months": "Months",
         "obs": "Observations", "yes": "Yes", "unw": "Unweighted", "wtd": "Weighted",
         "panel_a_stack": "Panel A. Event-time coefficients $\\beta^{S}_k$",
-        "panel_b_stack": "Panel B. Post-treatment average by treatment threshold",
-        "panel_c_stack": "Panel C. Stacked sample",
-        "ref": "reference", "pp": "percentage points", "stacked_obs": "Stacked observations",
-        "stacks": "Stacks (treatment cohorts)", "treated": "Treated products",
-        "controls": "Never-treated control products per stack",
+        "panel_b_stack": "Panel B. Mean post-treatment effect by treatment cutoff",
+        "panel_c_stack": "Panel C. Cohort samples",
+        "ref": "reference", "pp": "percentage points",
+        "stacked_obs": "Product-quarter-cohort obs.",
+        "stacks": "Treatment cohorts", "treated": "Treated products",
+        "controls": "Never-treated controls per cohort sample",
         "min_cell": "Minimum cell value (US dollars)", "coef_se": "Coefficient $\\beta^{V}$",
         "rb_R": "Rebalancing | power $R$", "rb_req": "Required | appreciation (\\%)",
-        "rb_feas": "Feasible", "no": "No", "panel_a_rb": "Panel A. Trade elasticity $\\eta=\\eta^{\\ast}$",
+        "no": "No", "panel_a_rb": "Panel A. Trade elasticity $\\eta=\\eta^{\\ast}$",
         "panel_b_rb": "Panel B. One-way calibration changes",
         "data_level": "data, level tariff", "data_log": "data, log gross tariff",
         "baseline": "baseline", "gamma": "Openness $\\gamma", "imb": "Initial imbalance $\\bar{b}",
@@ -101,14 +102,15 @@ TXT = {
         "clusters": "Grappes", "months": "Mois", "obs": "Observations", "yes": "Oui",
         "unw": "Non pondéré", "wtd": "Pondéré",
         "panel_a_stack": "Panneau A. Coefficients en temps d'événement $\\beta^{S}_k$",
-        "panel_b_stack": "Panneau B. Moyenne post-traitement selon le seuil de traitement",
-        "panel_c_stack": "Panneau C. Échantillon empilé",
-        "ref": "référence", "pp": "points de pourcentage", "stacked_obs": "Observations empilées",
-        "stacks": "Piles (cohortes de traitement)", "treated": "Produits traités",
-        "controls": "Produits témoins jamais traités par pile",
+        "panel_b_stack": "Panneau B. Effet moyen post-traitement par seuil",
+        "panel_c_stack": "Panneau C. Échantillons par cohorte",
+        "ref": "référence", "pp": "points de pourcentage",
+        "stacked_obs": "Obs. produit-trimestre-cohorte",
+        "stacks": "Cohortes de traitement", "treated": "Produits traités",
+        "controls": "Témoins jamais traités par échantillon de cohorte",
         "min_cell": "Valeur minimale de la cellule (dollars)", "coef_se": "Coefficient $\\beta^{V}$",
         "rb_R": "Pouvoir de | rééquilibrage $R$", "rb_req": "Appréciation | requise (\\%)",
-        "rb_feas": "Faisable", "no": "Non",
+        "no": "Non",
         "panel_a_rb": "Panneau A. Élasticité commerciale $\\eta=\\eta^{\\ast}$",
         "panel_b_rb": "Panneau B. Variations de calibration une à une",
         "data_level": "données, tarif en niveau",
@@ -307,6 +309,10 @@ def collect() -> dict:
     ]
     agg = pe.quarterly_inputs()
     res["desc"] += [("tau_agg", agg["tau"]), ("pm", agg["p"]), ("e", agg["e"])]
+    # Correlation matrices of the analysis variables, in unit-consistent blocks.
+    pm = d.merge(panel[["hs4", "dtau"]].drop_duplicates("hs4"), on="hs4", how="inner")
+    res["corr_product"] = pm[["effective_tariff", "log_value", "dtau"]].corr()
+    res["corr_aggregate"] = agg[["tau", "p", "e"]].corr()
     res["firm"] = _firm_results()
     return res
 
@@ -374,7 +380,7 @@ def table_staggered(res: dict, lang: str) -> str:
     unw, wtd = res["stacked"][False], res["stacked"][True]
     out = "\\begin{tabular}{@{}lcc@{}}\n\\toprule\n"
     out += f" & {T['unw']} & {T['wtd']} \\\\\n & (1) & (2) \\\\\n\\midrule\n"
-    out += f"\\multicolumn{{3}}{{@{{}}l}}{{\\emph{{{T['panel_a_stack']}}}}} \\\\\n"
+    out += _panel_head(3, T['panel_a_stack'])
     for k in range(-4, 7):
         label = f"$k={raw_num(k, 0, lang)}$"
         if k == -1:
@@ -383,14 +389,14 @@ def table_staggered(res: dict, lang: str) -> str:
         out += _rule_row(label, [coef(r.loc[k, "beta"], r.loc[k, "p"], 3, lang) for r in (unw, wtd)])
         out += _rule_row("", [se(r.loc[k, "se"], 3, lang) for r in (unw, wtd)])
     out += "\\addlinespace\n"
-    out += f"\\multicolumn{{3}}{{@{{}}l}}{{\\emph{{{T['panel_b_stack']}}}}} \\\\\n"
+    out += _panel_head(3, T['panel_b_stack'])
     tu, tw = res["stacked_thresholds"][False], res["stacked_thresholds"][True]
     for i in range(len(tu)):
         label = f"{integer(tu.loc[i, 'threshold_pp'], lang)} {T['pp']}"
         out += _rule_row(label, [num(tu.loc[i, "post_mean_beta"], 3, lang),
                                  num(tw.loc[i, "post_mean_beta"], 3, lang)])
     out += "\\addlinespace\n"
-    out += f"\\multicolumn{{3}}{{@{{}}l}}{{\\emph{{{T['panel_c_stack']}}}}} \\\\\n"
+    out += _panel_head(3, T['panel_c_stack'])
     counts = res["stack_counts"]
     ctrl = f"{integer(counts['n_control'].min(), lang)}--{integer(counts['n_control'].max(), lang)}"
     out += f"{T['stacked_obs']} & \\multicolumn{{2}}{{c}}{{{integer(res['stack_n'], lang)}}} \\\\\n"
@@ -417,25 +423,24 @@ def _feasible(flag: bool, lang: str) -> str:
 
 def table_rebalancing(res: dict, lang: str) -> str:
     T = TXT[lang]
-    out = "\\begin{tabular}{@{}lccc@{}}\n\\toprule\n"
-    out += f" & {_two_lines(T['rb_R'])} & {_two_lines(T['rb_req'])} & {T['rb_feas']} \\\\\n\\midrule\n"
+    out = "\\begin{tabular}{@{}lcc@{}}\n\\toprule\n"
+    out += f" & {_two_lines(T['rb_R'])} & {_two_lines(T['rb_req'])} \\\\\n\\midrule\n"
 
     def line(label: str, r) -> str:
-        return _rule_row(label, [num(r["R"], 4, lang), num(100 * r["required_deprec"], 0, lang),
-                                 _feasible(bool(r["feasible"]), lang)])
+        return _rule_row(label, [num(r["R"], 4, lang), num(100 * r["required_deprec"], 0, lang)])
 
-    out += f"\\multicolumn{{4}}{{@{{}}l}}{{\\emph{{{T['rb_fr']}}}}} \\\\\n"
+    out += _panel_head(3, T['rb_fr'])
     for key, (_, r) in zip(("sc_obs", "sc_noinv", "sc_open", "sc_none"), res["h2_frictions"].iterrows()):
         out += line(T[key], r)
     out += "\\addlinespace\n"
-    out += f"\\multicolumn{{4}}{{@{{}}l}}{{\\emph{{{T['rb_el']}}}}} \\\\\n"
+    out += _panel_head(3, T['rb_el'])
     el = res["elasticity"]
     labels = [T["el_base"], f"{T['el_level']} $({raw_num(res['eta_hat']['eta_level'], 2, lang)})$"]
     labels += [f"{T['el_star']} $\\eta^{{\\ast}}={raw_num(v, 2, lang)}$" for v in el["eta_star"].iloc[2:]]
     for label, (_, r) in zip(labels, el.iterrows()):
         out += line(label, r)
     out += "\\addlinespace\n"
-    out += f"\\multicolumn{{4}}{{@{{}}l}}{{\\emph{{{T['rb_ow']}}}}} \\\\\n"
+    out += _panel_head(3, T['rb_ow'])
     names = {"gamma": (T["gamma"], 4), "imbalance0": (T["imb"], 4), "import_share": (T["ow_s"], 3),
              "theta_dollar": (T["ow_theta"], 3), "max_depreciation": (T["emax"], 2)}
     for _, r in res["calibration_sens"].iterrows():
@@ -455,7 +460,7 @@ def table_ge(res: dict, lang: str) -> str:
             f" & {T['eff']} \\\\\n\\midrule\n")
     for panel, df, col, sym, nd in (("panel_a_ge", res["ge_theta"], "theta_dollar", "\\theta", 2),
                                     ("panel_b_ge", res["ge_chi"], "chi", "\\chi", 1)):
-        out += f"\\multicolumn{{5}}{{@{{}}l}}{{\\emph{{{T[panel]}}}}} \\\\\n"
+        out += _panel_head(5, T[panel])
         for r in df.itertuples(index=False):
             d = r._asdict()
             tag = f" ({T['estimated']})" if d.get("estimated") else ""
@@ -534,7 +539,7 @@ def table_event(res: dict, lang: str) -> str:
     out += (f"{T['quarter']} & {T['evtime']} $k$ & {T['coef']} $\\beta_k$ & {T['stderr']}"
             f" & {T['pval']} \\\\\n\\midrule\n")
     for panel, rows in (("panel_pre", quarters[:ref + 1]), ("panel_post", quarters[ref + 1:])):
-        out += f"\\multicolumn{{5}}{{@{{}}l}}{{\\emph{{{T[panel]}}}}} \\\\\n"
+        out += _panel_head(5, T[panel])
         for q in rows:
             k = quarters.index(q) - ref - 1
             label = q.replace("Q", "T") if lang == "fr" else q
@@ -583,36 +588,43 @@ def table_identification(res: dict, lang: str) -> str:
 
 
 def table_calibration(res: dict, lang: str) -> str:
-    """Parameter table in three tiers: estimated, computed from data, calibrated."""
+    """Parameter table in three tiers: estimated, computed from data, calibrated.
+
+    Each row shows the literature value and the retained baseline side by side, so the six
+    parameters that the data replace (Panels A and B) are visible against those left calibrated
+    (Panel C, where the two columns coincide).
+    """
+    from src.engine.calibration import LITERATURE as L
     T = TXT[lang]
     i = 0 if lang == "en" else 1
+    lit_h, base_h = ("Literature", "Littérature")[i], ("Baseline", "Référence")[i]
     p, eta, pt, rho, sh = res["params"], res["eta_hat"], res["passthrough"], res["rho_tau"], res["shares"]
-    out = ("\\begin{tabular}{@{}>{\\raggedright\\arraybackslash}p{5.2cm}cc"
-           ">{\\raggedright\\arraybackslash}p{5.0cm}@{}}\n\\toprule\n")
-    out += f"{T['param']} & {T['symbol']} & {T['value']} & {T['method']} \\\\\n\\midrule\n"
+    out = ("\\begin{tabular}{@{}>{\\raggedright\\arraybackslash}p{4.4cm}ccc"
+           ">{\\raggedright\\arraybackslash}p{4.4cm}@{}}\n\\toprule\n")
+    out += f"{T['param']} & {T['symbol']} & {lit_h} & {base_h} & {T['method']} \\\\\n\\midrule\n"
     est = [
-        ("Import-demand elasticity", "Élasticité de la demande d'importations", "\\eta", eta["eta"], eta["se"],
+        ("Import-demand elasticity", "Élasticité de la demande d'importations", "\\eta", eta["eta"], eta["se"], L.eta,
          "Product panel, log gross tariff, \\cref{lem:mapping}", "Panel de produits, log du tarif brut, \\cref{lem:mapping}"),
-        ("Dollar-invoicing friction", "Friction de facturation en dollars", "\\theta", pt["theta"], pt["se"],
+        ("Dollar-invoicing friction", "Friction de facturation en dollars", "\\theta", pt["theta"], pt["se"], L.theta_dollar,
          "Exchange-rate pass-through, \\cref{eq:erpt}", "Transmission du change, \\cref{eq:erpt}"),
-        ("Persistence of the tariff", "Persistance du tarif", "\\rho_{\\tau}", rho["rho_tau"], rho["se"],
+        ("Persistence of the tariff", "Persistance du tarif", "\\rho_{\\tau}", rho["rho_tau"], rho["se"], L.rho_tau,
          "First-order autoregression of the aggregate effective tariff", "Autorégression d'ordre un du tarif effectif agrégé"),
     ]
-    out += f"\\multicolumn{{4}}{{@{{}}l}}{{\\emph{{{T['par_est']}}}}} \\\\\n"
-    for en, fr, sym, v, sd, m_en, m_fr in est:
-        out += _rule_row((en, fr)[i], [f"${sym}$", f"{num(v, 3, lang)} {se(sd, 3, lang)}", (m_en, m_fr)[i]])
+    out += _panel_head(5, T['par_est'])
+    for en, fr, sym, v, sd, lit, m_en, m_fr in est:
+        out += _rule_row((en, fr)[i], [f"${sym}$", num(lit, 2, lang), f"{num(v, 3, lang)} {se(sd, 3, lang)}", (m_en, m_fr)[i]])
     comp = [
         ("Import share of bilateral trade", "Part des importations dans le commerce bilatéral", "s",
-         sh["import_share"], 3, "$M/(X+M)$, Census Bureau", "$M/(X+M)$, Bureau du recensement"),
-        ("Bilateral openness", "Ouverture bilatérale", "\\gamma", sh["gamma"], 4,
+         sh["import_share"], 3, L.import_share, "$M/(X+M)$, Census Bureau", "$M/(X+M)$, Bureau du recensement"),
+        ("Bilateral openness", "Ouverture bilatérale", "\\gamma", sh["gamma"], 4, L.gamma,
          "$(X+M)/Y$, Census Bureau and Bureau of Economic Analysis", "$(X+M)/Y$, Bureau du recensement et Bureau of Economic Analysis"),
         ("Initial imbalance, share of output", "Déséquilibre initial, part de la production", "\\bar{b}",
-         sh["imbalance0"], 4, "$(M-X)/Y$, Census Bureau and Bureau of Economic Analysis", "$(M-X)/Y$, Bureau du recensement et Bureau of Economic Analysis"),
+         sh["imbalance0"], 4, L.imbalance0, "$(M-X)/Y$, Census Bureau and Bureau of Economic Analysis", "$(M-X)/Y$, Bureau du recensement et Bureau of Economic Analysis"),
     ]
     out += "\\addlinespace\n"
-    out += f"\\multicolumn{{4}}{{@{{}}l}}{{\\emph{{{T['par_comp']}}}}} \\\\\n"
-    for en, fr, sym, v, nd, m_en, m_fr in comp:
-        out += _rule_row((en, fr)[i], [f"${sym}$", num(v, nd, lang), (m_en, m_fr)[i]])
+    out += _panel_head(5, T['par_comp'])
+    for en, fr, sym, v, nd, lit, m_en, m_fr in comp:
+        out += _rule_row((en, fr)[i], [f"${sym}$", num(lit, 2, lang), num(v, nd, lang), (m_en, m_fr)[i]])
     ge_s, rb = "\\cref{tab:ge-sensitivity}", "\\cref{tab:rebalancing}"
     cal = [
         ("Foreign import-demand elasticity", "Élasticité de la demande d'importations étrangère", "\\eta^{\\ast}",
@@ -640,9 +652,9 @@ def table_calibration(res: dict, lang: str) -> str:
          "Policy experiment; varied, \\cref{sec:rob}", "Expérience de politique~; varié, \\cref{sec:rob}"),
     ]
     out += "\\addlinespace\n"
-    out += f"\\multicolumn{{4}}{{@{{}}l}}{{\\emph{{{T['par_cal']}}}}} \\\\\n"
+    out += _panel_head(5, T['par_cal'])
     for en, fr, sym, v, m_en, m_fr in cal:
-        out += _rule_row((en, fr)[i], [f"${sym}$", num(v, 2, lang), (m_en, m_fr)[i]])
+        out += _rule_row((en, fr)[i], [f"${sym}$", num(v, 2, lang), num(v, 2, lang), (m_en, m_fr)[i]])
     return out + "\\bottomrule\n\\end{tabular}\n"
 
 
@@ -658,6 +670,12 @@ def table_passthrough(res: dict, lang: str) -> str:
     out += _rule_row(T["implied"], ["" if h == 0 else num(t, 3, lang)
                                     for h, t in zip(path["horizon"], path["theta"])])
     return out + "\\bottomrule\n\\end{tabular}\n"
+
+
+def _panel_head(span: int, label: str) -> str:
+    """Bold-italic panel header (e.g. Panel A) spanning `span` columns."""
+    return ("\\multicolumn{" + str(span) + "}{@{}l}{\\textbf{\\emph{"
+            + label + "}}} \\\\\n")
 
 
 def _pct(x: float, nd: int, lang: str) -> str:
@@ -678,7 +696,7 @@ def table_uncertainty(res: dict, lang: str) -> str:
     out += (f" & \\multicolumn{{2}}{{c}}{{{T['mc_est']}}} & \\multicolumn{{2}}{{c}}{{{T['mc_full']}}} \\\\\n"
             "\\cmidrule(lr){2-3}\\cmidrule(l){4-5}\n")
     out += f" & {T['median']} & {T['mc_int']} & {T['median']} & {T['mc_int']} \\\\\n\\midrule\n"
-    out += f"\\multicolumn{{5}}{{@{{}}l}}{{\\emph{{{T['mc_h3']}}}}} \\\\\n"
+    out += _panel_head(5, T['mc_h3'])
     for key, label in (("invoicing", "mc_inv"), ("wedge", "mc_wedge"), ("difference", "mc_diff")):
         out += _rule_row(T[label], [_pct(est[key]["q50"], 0, lang), _interval(est[key], lang),
                                     _pct(full[key]["q50"], 0, lang), _interval(full[key], lang)])
@@ -689,7 +707,7 @@ def table_uncertainty(res: dict, lang: str) -> str:
     out += _rule_row("\\quad " + T["mc_det"], [f"\\multicolumn{{2}}{{c}}{{{_pct(est['n_determinate'] / est['n'], 1, lang)}}}",
                                    f"\\multicolumn{{2}}{{c}}{{{_pct(full['n_determinate'] / full['n'], 1, lang)}}}"])
     out += "\\addlinespace\n"
-    out += f"\\multicolumn{{5}}{{@{{}}l}}{{\\emph{{{T['mc_h2']}}}}} \\\\\n"
+    out += _panel_head(5, T['mc_h2'])
     out += _rule_row(T["mc_req"], [_pct(est["required_deprec"]["q50"], 0, lang), _interval(est["required_deprec"], lang),
                                    _pct(full["required_deprec"]["q50"], 0, lang), _interval(full["required_deprec"], lang)])
     out += _rule_row(T["mc_feas"], [f"\\multicolumn{{2}}{{c}}{{{_pct(est['share_feasible'], 1, lang)}}}",
@@ -782,6 +800,10 @@ def numbers(res: dict, lang: str) -> str:
     def post_mean(r: pd.DataFrame) -> float:
         return float(r.loc[[k for k in r.index if k >= 0], "beta"].mean())
 
+    def quarter_label(qi: int) -> str:
+        label = f"{int(qi) // 4}Q{int(qi) % 4 + 1}"
+        return label.replace("Q", "T") if lang == "fr" else label
+
     m = ""
     m += macro("ValueBeta", num(s["beta"], 2, lang)) + macro("ValueSE", num(s["se"], 2, lang))
     m += macro("ValueBetaLog", num(s2["beta"], 2, lang))
@@ -812,6 +834,9 @@ def numbers(res: dict, lang: str) -> str:
     m += macro("NtreatedStacked", integer(counts["n_treated"].sum(), lang))
     m += macro("NcontrolsMin", integer(counts["n_control"].min(), lang))
     m += macro("NcontrolsMax", integer(counts["n_control"].max(), lang))
+    m += macro("FirstCohort", quarter_label(int(counts["stack"].min())))
+    m += macro("LastCohort", quarter_label(int(counts["stack"].max())))
+    m += macro("LargestCohort", integer(int(counts["n_treated"].max()), lang))
     m += macro("NcellsProduct", integer(s["n_fe1"] * s["n_fe2"], lang))
     m += macro("StackedUnw", num(post_mean(unw), 2, lang)) + macro("StackedW", num(post_mean(wtd), 2, lang))
     m += macro("StackedWimpact", num(wtd.loc[0, "beta"], 2, lang))
@@ -973,6 +998,36 @@ def numbers(res: dict, lang: str) -> str:
     return m
 
 
+def table_correlation(res: dict, lang: str) -> str:
+    """Pairwise correlations of the analysis variables, in unit-consistent blocks."""
+    i = 0 if lang == "en" else 1
+    ncol = 3
+    blocks = [
+        (("Panel A. Product panel", "Panneau A. Panel de produits"),
+         res["corr_product"], ["effective_tariff", "log_value", "dtau"],
+         [("Effective tariff", "Tarif effectif", "\\tau"),
+          ("Import value", "Valeur importée", "v"),
+          ("Tariff-shock intensity", "Intensité du choc tarifaire", "\\Delta\\tau_i")]),
+        (("Panel B. Aggregate quarterly series", "Panneau B. Séries trimestrielles agrégées"),
+         res["corr_aggregate"], ["tau", "p", "e"],
+         [("Aggregate effective tariff", "Tarif effectif agrégé", "\\tau_t"),
+          ("Aggregate import price", "Prix agrégé à l'importation", "p^{m}_t"),
+          ("Renminbi value", "Valeur du renminbi", "e_t")]),
+    ]
+    out = ("\\begin{tabular}{@{}>{\\raggedright\\arraybackslash}p{6.2cm}" + "c" * ncol
+           + "@{}}\n\\toprule\n")
+    out += " & " + " & ".join(f"({j + 1})" for j in range(ncol)) + " \\\\\n\\midrule\n"
+    parts = []
+    for (pen, pfr), M, cols, vardefs in blocks:
+        b = _panel_head(ncol + 1, (pen, pfr)[i])
+        Mv = M.loc[cols, cols].to_numpy()
+        for r, (en, fr, sym) in enumerate(vardefs):
+            cells = [num(Mv[r, c], 2, lang) if c <= r else "" for c in range(ncol)]
+            b += _rule_row(f"({r + 1}) \\emph{{{(en, fr)[i]}}} ${sym}$", cells)
+        parts.append(b)
+    return out + "\\addlinespace\n".join(parts) + "\\bottomrule\n\\end{tabular}\n"
+
+
 # ---------------------------------------------------------------------------------------
 
 TABLES = {
@@ -982,6 +1037,7 @@ TABLES = {
     "tab_ge_sensitivity": table_ge_sensitivity, "tab_event": table_event,
     "tab_calibration_validation": table_calibration_validation,
     "tab_calibration": table_calibration, "tab_descriptive": table_descriptive,
+    "tab_correlation": table_correlation,
     "tab_passthrough": table_passthrough, "tab_uncertainty": table_uncertainty,
     "tab_uncertainty_ranges": table_uncertainty_ranges,
 }
