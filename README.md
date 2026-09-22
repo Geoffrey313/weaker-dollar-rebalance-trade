@@ -1,8 +1,6 @@
 # Can a Weaker Dollar Rebalance Trade?
 
-**Authors.** Geoffrey Ducournau (Dimtech S.A.S) · Jalal Qanas (College of Business and
-Economics, Qatar University) · Jinliang Li (School of Economics and Management, Tsinghua
-University, Beijing, China).
+**Authors.** Anonymized for review.
 
 This repository reproduces the empirical and structural results of the paper. The
 manuscripts, the generated results, and the data-acquisition code are kept in the working tree
@@ -120,7 +118,3 @@ input-output tables (OECD), the renminbi exchange rate (Federal Reserve H.10) an
 fundamentals from Compustat (Wharton Research Data Services) are licensed and not
 redistributable; they enter only the firm-level analysis, are not versioned here, and are
 available on request.
-
-## Contact
-
-geoffrey.ducournau@111dimtech.com
