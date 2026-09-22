@@ -13,7 +13,6 @@ decomposition: the adjustment is in quantities, not in a border-price offset.
 """
 from __future__ import annotations
 
-import pandas as pd
 
 from src.common.twfe import twfe_cluster, wild_cluster_bootstrap
 from src.data.sector_prices import load_price_tariff_panel

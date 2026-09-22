@@ -35,7 +35,6 @@ p^m_t for pm_t, s for import_share, and psi for portfolio_cost (section "Structu
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -51,40 +50,54 @@ NK = 4  # predetermined: d, pm, tau, z
 def build_system(p: Params = BASELINE) -> tuple[np.ndarray, np.ndarray]:
     """Assemble A, B for A E_t x_{t+1} = B x_t."""
     n = len(VARS)
-    A = np.zeros((n, n)); B = np.zeros((n, n))
+    A = np.zeros((n, n))
+    B = np.zeros((n, n))
     i = IDX
     kap = p.kappa
 
     # d_{t+1} = (1/beta) d_t + nx_t
     A[0, i["d"]] = 1.0
-    B[0, i["d"]] = 1.0 / p.beta; B[0, i["nx"]] = 1.0
+    B[0, i["d"]] = 1.0 / p.beta
+    B[0, i["nx"]] = 1.0
     # pm_{t+1} - (1-theta_$) e_{t+1} = theta_$ pm_t
-    A[1, i["pm"]] = 1.0; A[1, i["e"]] = -(1.0 - p.theta_dollar)
+    A[1, i["pm"]] = 1.0
+    A[1, i["e"]] = -(1.0 - p.theta_dollar)
     B[1, i["pm"]] = p.theta_dollar
     # tau_{t+1} = rho_tau tau_t
-    A[2, i["tau"]] = 1.0; B[2, i["tau"]] = p.rho_tau
+    A[2, i["tau"]] = 1.0
+    B[2, i["tau"]] = p.rho_tau
     # z_{t+1} = rho_z z_t
-    A[3, i["z"]] = 1.0; B[3, i["z"]] = p.rho_z
+    A[3, i["z"]] = 1.0
+    B[3, i["z"]] = p.rho_z
     # Open-economy IS + Taylor, with net exports in aggregate demand (coupling nx -> y):
     #   y_t = E y_{t+1} - (1/sigma)(i_t - E pi_{t+1}) + gamma*nx_t,  i_t = phi_pi pi + phi_y y
     #   => (1+phi_y/sigma) y_t + (phi_pi/sigma) pi_t - gamma*nx_t = E y_{t+1} + (1/sigma) E pi_{t+1}
-    A[4, i["y"]] = 1.0; A[4, i["pi"]] = 1.0 / p.sigma
-    B[4, i["y"]] = 1.0 + p.phi_y / p.sigma; B[4, i["pi"]] = p.phi_pi / p.sigma
+    A[4, i["y"]] = 1.0
+    A[4, i["pi"]] = 1.0 / p.sigma
+    B[4, i["y"]] = 1.0 + p.phi_y / p.sigma
+    B[4, i["pi"]] = p.phi_pi / p.sigma
     B[4, i["nx"]] = -p.gamma
     # NKPC: beta E pi_{t+1} = pi_t - kappa y_t
     A[5, i["pi"]] = p.beta
-    B[5, i["pi"]] = 1.0; B[5, i["y"]] = -kap
+    B[5, i["pi"]] = 1.0
+    B[5, i["y"]] = -kap
     # modified UIP: E e_{t+1} = phi_pi pi_t + phi_y y_t + e_t + Phi(1+chi) d_t - z_t
     A[6, i["e"]] = 1.0
-    B[6, i["pi"]] = p.phi_pi; B[6, i["y"]] = p.phi_y; B[6, i["e"]] = 1.0
-    B[6, i["d"]] = p.portfolio_cost * (1.0 + p.chi); B[6, i["z"]] = -1.0
+    B[6, i["pi"]] = p.phi_pi
+    B[6, i["y"]] = p.phi_y
+    B[6, i["e"]] = 1.0
+    B[6, i["d"]] = p.portfolio_cost * (1.0 + p.chi)
+    B[6, i["z"]] = -1.0
     # Net exports (static), trade-share weighted so the DCP-muted IMPORT channel dominates:
     #   export value (share s_x): +s_x*eta_star*e   [weaker dollar -> RMB price of US goods falls]
     #   import value (share s_m): (eta-1)*pm + eta*tau, muted because pm is sticky in e under DCP
     #     -> the exchange rate reaches imports only slowly via pm.
-    s_m = p.import_share; s_x = 1.0 - p.import_share
-    B[7, i["nx"]] = -1.0; B[7, i["e"]] = s_x * p.eta_star
-    B[7, i["pm"]] = s_m * (p.eta - 1.0); B[7, i["tau"]] = s_m * p.eta
+    s_m = p.import_share
+    s_x = 1.0 - p.import_share
+    B[7, i["nx"]] = -1.0
+    B[7, i["e"]] = s_x * p.eta_star
+    B[7, i["pm"]] = s_m * (p.eta - 1.0)
+    B[7, i["tau"]] = s_m * p.eta
     return A, B
 
 

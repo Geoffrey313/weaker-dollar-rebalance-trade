@@ -29,8 +29,8 @@ class Solution:
 
 def solve(A: np.ndarray, B: np.ndarray, nk: int, tol: float = 1e-9) -> Solution:
     """Solve A E_t x_{t+1} = B x_t for the stable saddle-path rule (x=[k (nk); u])."""
-    A = np.asarray(A, float); B = np.asarray(B, float)
-    n = A.shape[0]
+    A = np.asarray(A, float)
+    B = np.asarray(B, float)
     # For A E_t x_{t+1} = B x_t the dynamic multipliers are the eigenvalues of the pencil (B, A):
     # lambda_dyn = T_ii/S_ii. scipy's ordqz(A, B) reports alpha/beta = eig of (A, B) = 1/lambda_dyn,
     # so a dynamically STABLE mode (|lambda_dyn|<1) has scipy |alpha/beta|>1 -> sort 'ouc' puts the
@@ -42,8 +42,10 @@ def solve(A: np.ndarray, B: np.ndarray, nk: int, tol: float = 1e-9) -> Solution:
     if stable != nk:
         raise ValueError(f"Blanchard-Kahn failed: {stable} stable eigenvalues != {nk} predetermined "
                          f"(dynamic |lambda|={np.sort(lam_dyn)}).")
-    Z11 = Z[:nk, :nk]; Z21 = Z[nk:, :nk]
-    S11 = S[:nk, :nk]; T11 = T[:nk, :nk]
+    Z11 = Z[:nk, :nk]
+    Z21 = Z[nk:, :nk]
+    S11 = S[:nk, :nk]
+    T11 = T[:nk, :nk]
     Z11_inv = np.linalg.inv(Z11)
     F = Z21 @ Z11_inv                                  # u_t = F k_t
     P = Z11 @ np.linalg.solve(S11, T11) @ Z11_inv       # k_{t+1} = P k_t

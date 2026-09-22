@@ -82,7 +82,7 @@ if __name__ == "__main__":
     pd.set_option("display.float_format", lambda x: f"{x:.4f}")
     print("Firm incidence DiD: y ~ beta*(ChinaInput_i x Post_t) | firm + time FE, cluster firm")
     print(f"  ChinaInput = industry China-input exposure (base 2017); Post = year >= {POST_YEAR}")
-    print(f"  Sample: goods firms with sales above the micro-cap floor; outcome winsorized in-sample\n")
+    print("  Sample: goods firms with sales above the micro-cap floor; outcome winsorized in-sample\n")
     print("Annual:")
     print(run_annual().to_string(index=False))
     print("\nQuarterly:")

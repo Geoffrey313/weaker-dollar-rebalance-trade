@@ -1,0 +1,13 @@
+year,flow_type,direction,value_bn
+2000,goods,us_to_china,16.19
+2000,goods,china_to_us,100.02
+2000,services,us_to_china,5.62
+2000,services,china_to_us,3.16
+2000,investment,us_to_china,11.14
+2000,investment,china_to_us,0.28
+2024,goods,us_to_china,143.27
+2024,goods,china_to_us,440.32
+2024,services,us_to_china,54.47
+2024,services,china_to_us,22.26
+2024,investment,us_to_china,112.02
+2024,investment,china_to_us,32.36

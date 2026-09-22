@@ -92,7 +92,8 @@ def event_summary(ref_q: str = REF_Q, split_sample: bool = False) -> dict:
     res, vcov, _ = twfe_ols(panel, "log_value", terms, "hs4", "q", cluster="hs4",
                             return_vcov=True)
     res.index = [t.replace("e_", "") for t in res.index]
-    vcov.index = res.index; vcov.columns = res.index
+    vcov.index = res.index
+    vcov.columns = res.index
     pre = [q for q in res.index if _qkey(q) < _qkey(ref_q)]
     post = [q for q in res.index if _qkey(q) >= _qkey(FIRST_LIST_Q)]
     w = np.full(len(post), 1.0 / len(post))

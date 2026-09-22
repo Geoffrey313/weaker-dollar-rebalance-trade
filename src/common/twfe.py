@@ -54,7 +54,8 @@ def twfe_cluster(df: pd.DataFrame, y: str, x: str, fe1: str, fe2: str,
     """Two-way FE regression y ~ beta*x | fe1 + fe2, SE clustered on `cluster` (default fe1)."""
     cluster = cluster or fe1
     d = df.dropna(subset=[y, x, fe1, fe2, cluster])
-    c1, k1 = pd.factorize(d[fe1]); c2, k2 = pd.factorize(d[fe2])
+    c1, k1 = pd.factorize(d[fe1])
+    c2, k2 = pd.factorize(d[fe2])
     k1, k2 = len(k1), len(k2)
     M = demean_2way(np.column_stack([d[y].to_numpy(float), d[x].to_numpy(float)]), c1, c2, k1, k2)
     yt, xt = M[:, 0], M[:, 1]
@@ -89,7 +90,8 @@ def twfe_ols(df: pd.DataFrame, y: str, xs: list[str], fe1: str, fe2: str,
     cluster = cluster or fe1
     cols = [y] + list(xs)
     d = df.dropna(subset=cols + [fe1, fe2, cluster] + ([weights] if weights else []))
-    c1, u1 = pd.factorize(d[fe1]); c2, u2 = pd.factorize(d[fe2])
+    c1, u1 = pd.factorize(d[fe1])
+    c2, u2 = pd.factorize(d[fe2])
     k1, k2 = len(u1), len(u2)
     w = None
     if weights:
@@ -103,7 +105,8 @@ def twfe_ols(df: pd.DataFrame, y: str, xs: list[str], fe1: str, fe2: str,
     XtX_inv = np.linalg.pinv(XtX)
     beta = XtX_inv @ (Xw.T @ yt)
     e = yt - X @ beta
-    clab, uc = pd.factorize(d[cluster]); G = len(uc)
+    clab, uc = pd.factorize(d[cluster])
+    G = len(uc)
     K = X.shape[1]
     meat = np.zeros((K, K))
     for g in range(G):
@@ -146,11 +149,15 @@ def wild_cluster_bootstrap(df: pd.DataFrame, y: str, x: str, fe1: str, fe2: str,
     """
     cluster = cluster or fe1
     d = df.dropna(subset=[y, x, fe1, fe2, cluster])
-    c1, u1 = pd.factorize(d[fe1]); c2, u2 = pd.factorize(d[fe2]); k1, k2 = len(u1), len(u2)
+    c1, u1 = pd.factorize(d[fe1])
+    c2, u2 = pd.factorize(d[fe2])
+    k1, k2 = len(u1), len(u2)
     M = demean_2way(np.column_stack([d[y].to_numpy(float), d[x].to_numpy(float)]), c1, c2, k1, k2)
     yt, xt = M[:, 0], M[:, 1]
-    clab, uc = pd.factorize(d[cluster]); G = len(uc)
-    N = len(yt); sxx = xt @ xt
+    clab, uc = pd.factorize(d[cluster])
+    G = len(uc)
+    N = len(yt)
+    sxx = xt @ xt
     adj = (G / (G - 1)) * ((N - 1) / (N - (k1 + k2 - 1) - 1))
     beta_hat, t_hat = _cluster_t(xt, yt, clab, G, sxx, adj)
 
@@ -210,7 +217,8 @@ def validate_multi_against_statsmodels() -> None:
     rng = np.random.default_rng(7)
     idx = pd.MultiIndex.from_product([range(50), range(14)], names=["unit", "time"]).to_frame(index=False)
     idx = idx[rng.random(len(idx)) > 0.1].reset_index(drop=True)
-    x1 = rng.normal(size=len(idx)); x2 = rng.normal(size=len(idx))
+    x1 = rng.normal(size=len(idx))
+    x2 = rng.normal(size=len(idx))
     y = 1.2 * x1 - 0.7 * x2 + rng.normal(size=50)[idx["unit"]] + rng.normal(size=14)[idx["time"]] \
         + rng.normal(scale=0.4, size=len(idx))
     df = idx.assign(x1=x1, x2=x2, y=y, us=idx["unit"].astype(str), ts=idx["time"].astype(str))
@@ -230,7 +238,8 @@ def validate_weighted_against_statsmodels() -> None:
     rng = np.random.default_rng(11)
     idx = pd.MultiIndex.from_product([range(40), range(12)], names=["unit", "time"]).to_frame(index=False)
     idx = idx[rng.random(len(idx)) > 0.1].reset_index(drop=True)
-    x1 = rng.normal(size=len(idx)); x2 = rng.normal(size=len(idx))
+    x1 = rng.normal(size=len(idx))
+    x2 = rng.normal(size=len(idx))
     y = 0.8 * x1 + 0.3 * x2 + rng.normal(size=40)[idx["unit"]] + rng.normal(size=12)[idx["time"]] \
         + rng.normal(scale=0.5, size=len(idx))
     wts = rng.uniform(0.2, 3.0, size=len(idx))
