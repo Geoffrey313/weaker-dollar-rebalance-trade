@@ -30,6 +30,7 @@ licensed data are never versioned here (see the policy below).
 | `us_china_trade_annual.csv` | US Census International Trade API (`intltrade/exports/hs` `ALL_VAL_YR`, `intltrade/imports/hs` `GEN_VAL_YR`, China=5700), pulled by the gitignored `data_download/pull_macro_inputs.py` | Annual US goods exports to and general imports from China, dollars, 2015-2021: import share, bilateral openness, initial imbalance |
 | `fx_cny_usd_monthly.csv` | FRED series `EXCHUS` (Federal Reserve H.10), same script | Renminbi per dollar, monthly average, 2014-2024: exchange-rate pass-through disciplining the dollar-invoicing friction |
 | `us_gdp_annual.csv` | FRED series `GDPA` (BEA), same script | US nominal GDP, billions of dollars, annual, 2014-2024: scales bilateral trade and the imbalance to output |
+| `us_china_flows.csv` | US Census, Trade in Goods with China (goods); BEA, International Trade Tables 7-8 (services) and direct-investment positions on a historical-cost basis (FDI) | Bilateral US-China flows, billions of current dollars, 2000 and 2024, by direction: goods and services trade (annual flows) and the direct-investment position (year-end stock); the introduction motivation figure. China excludes Hong Kong and Macau |
 
 ## Data access notes (product/sector panel)
 

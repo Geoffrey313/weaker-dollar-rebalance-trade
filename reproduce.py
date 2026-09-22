@@ -150,12 +150,12 @@ def wrds_results() -> dict | None:
 def stage_figures() -> int:
     """Regenerate the master figures in EN and FR (deterministic; no hand-editing)."""
     from src.figures.style import apply_style, LANGS
-    from src.figures import (fig_event_study, fig_ge_irf, fig_ge_mechanism, fig_h1_decomposition,
-                             fig_uncertainty, fig_uncertainty_bound)
+    from src.figures import (fig_event_study, fig_flows, fig_ge_irf, fig_ge_mechanism,
+                             fig_h1_decomposition, fig_uncertainty, fig_uncertainty_bound)
     apply_style()
     n = 0
-    for mod in (fig_event_study, fig_h1_decomposition, fig_ge_mechanism, fig_ge_irf, fig_uncertainty,
-                fig_uncertainty_bound):
+    for mod in (fig_flows, fig_event_study, fig_h1_decomposition, fig_ge_mechanism, fig_ge_irf,
+                fig_uncertainty, fig_uncertainty_bound):
         for lang in LANGS:
             mod.make(lang)
             n += 1
