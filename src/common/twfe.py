@@ -6,6 +6,12 @@ Method: iterative alternating-projection demeaning of the outcome and the regres
 fixed-effect factors (exact two-way within transformation for unbalanced panels), then OLS of
 the demeaned outcome on the demeaned regressor. Standard errors are clustered on `cluster`,
 with a reghdfe-style small-sample adjustment. Validated against a dummy-variable OLS.
+
+`twfe_ols` also accepts observation weights (weighted least squares). The within
+transformation then uses weighted group means, which is the Frisch-Waugh-Lovell projection
+for WLS, and the cluster-robust variance uses the weighted scores. This serves the corrective
+weights of the stacked difference-in-differences (Wing, Freedman and Hollingsworth, 2024).
+Validated against a dummy-variable WLS.
 """
 from __future__ import annotations
 
@@ -14,23 +20,30 @@ import pandas as pd
 from scipy import stats
 
 
-def _demean_col(x: np.ndarray, codes: np.ndarray, k: int) -> np.ndarray:
-    """Subtract the group mean of x within each group (groups labelled 0..k-1)."""
-    sums = np.bincount(codes, weights=x, minlength=k)
-    counts = np.bincount(codes, minlength=k)
-    means = sums / np.maximum(counts, 1)
+def _demean_col(x: np.ndarray, codes: np.ndarray, k: int,
+                w: np.ndarray | None = None) -> np.ndarray:
+    """Subtract the (weighted) group mean of x within each group (groups labelled 0..k-1)."""
+    if w is None:
+        sums = np.bincount(codes, weights=x, minlength=k)
+        counts = np.bincount(codes, minlength=k)
+        means = sums / np.maximum(counts, 1)
+        return x - means[codes]
+    sums = np.bincount(codes, weights=w * x, minlength=k)
+    mass = np.bincount(codes, weights=w, minlength=k)
+    means = np.divide(sums, mass, out=np.zeros(k), where=mass > 0)
     return x - means[codes]
 
 
 def demean_2way(mat: np.ndarray, c1: np.ndarray, c2: np.ndarray,
-                k1: int, k2: int, iters: int = 200, tol: float = 1e-10) -> np.ndarray:
-    """Two-way within transformation by alternating projections until convergence."""
+                k1: int, k2: int, iters: int = 200, tol: float = 1e-10,
+                w: np.ndarray | None = None) -> np.ndarray:
+    """Two-way (weighted) within transformation by alternating projections until convergence."""
     X = mat.astype(float).copy()
     for _ in range(iters):
         X0 = X.copy()
         for j in range(X.shape[1]):
-            X[:, j] = _demean_col(X[:, j], c1, k1)
-            X[:, j] = _demean_col(X[:, j], c2, k2)
+            X[:, j] = _demean_col(X[:, j], c1, k1, w)
+            X[:, j] = _demean_col(X[:, j], c2, k2, w)
         if np.max(np.abs(X - X0)) < tol:
             break
     return X
@@ -65,27 +78,36 @@ def twfe_cluster(df: pd.DataFrame, y: str, x: str, fe1: str, fe2: str,
 
 
 def twfe_ols(df: pd.DataFrame, y: str, xs: list[str], fe1: str, fe2: str,
-             cluster: str | None = None) -> pd.DataFrame:
+             cluster: str | None = None, weights: str | None = None,
+             return_vcov: bool = False):
     """Two-way FE regression y ~ b*xs | fe1 + fe2 with MULTIPLE regressors, cluster-robust SE.
 
     Returns a frame indexed by regressor with beta, se, t, p (used for event-study leads/lags).
+    With `weights` (a column of positive observation weights) the regression is weighted least
+    squares; without it the unweighted path is unchanged.
     """
     cluster = cluster or fe1
     cols = [y] + list(xs)
-    d = df.dropna(subset=cols + [fe1, fe2, cluster])
+    d = df.dropna(subset=cols + [fe1, fe2, cluster] + ([weights] if weights else []))
     c1, u1 = pd.factorize(d[fe1]); c2, u2 = pd.factorize(d[fe2])
     k1, k2 = len(u1), len(u2)
-    M = demean_2way(d[cols].to_numpy(float), c1, c2, k1, k2)
+    w = None
+    if weights:
+        w = d[weights].to_numpy(float)
+        if np.any(w <= 0):
+            raise ValueError("observation weights must be strictly positive")
+    M = demean_2way(d[cols].to_numpy(float), c1, c2, k1, k2, w=w)
     yt, X = M[:, 0], M[:, 1:]
-    XtX = X.T @ X
+    Xw = X if w is None else X * w[:, None]
+    XtX = Xw.T @ X
     XtX_inv = np.linalg.pinv(XtX)
-    beta = XtX_inv @ (X.T @ yt)
+    beta = XtX_inv @ (Xw.T @ yt)
     e = yt - X @ beta
     clab, uc = pd.factorize(d[cluster]); G = len(uc)
     K = X.shape[1]
     meat = np.zeros((K, K))
     for g in range(G):
-        Xg = X[clab == g]
+        Xg = Xw[clab == g]
         sg = Xg.T @ e[clab == g]
         meat += np.outer(sg, sg)
     N = len(yt)
@@ -94,7 +116,10 @@ def twfe_ols(df: pd.DataFrame, y: str, xs: list[str], fe1: str, fe2: str,
     se = np.sqrt(np.diag(V))
     t = beta / se
     p = 2 * stats.t.sf(np.abs(t), G - 1)
-    return pd.DataFrame({"beta": beta, "se": se, "t": t, "p": p}, index=list(xs))
+    out = pd.DataFrame({"beta": beta, "se": se, "t": t, "p": p}, index=list(xs))
+    if return_vcov:
+        return out, pd.DataFrame(V, index=list(xs), columns=list(xs)), G
+    return out
 
 
 def _cluster_t(xt: np.ndarray, yv: np.ndarray, clab: np.ndarray, G: int,
@@ -198,6 +223,28 @@ def validate_multi_against_statsmodels() -> None:
     print("twfe_ols (multi-regressor) validation OK")
 
 
+def validate_weighted_against_statsmodels() -> None:
+    """Validate weighted twfe_ols against dummy-variable WLS with clustered SE."""
+    import statsmodels.formula.api as smf
+
+    rng = np.random.default_rng(11)
+    idx = pd.MultiIndex.from_product([range(40), range(12)], names=["unit", "time"]).to_frame(index=False)
+    idx = idx[rng.random(len(idx)) > 0.1].reset_index(drop=True)
+    x1 = rng.normal(size=len(idx)); x2 = rng.normal(size=len(idx))
+    y = 0.8 * x1 + 0.3 * x2 + rng.normal(size=40)[idx["unit"]] + rng.normal(size=12)[idx["time"]] \
+        + rng.normal(scale=0.5, size=len(idx))
+    wts = rng.uniform(0.2, 3.0, size=len(idx))
+    df = idx.assign(x1=x1, x2=x2, y=y, w=wts, us=idx["unit"].astype(str), ts=idx["time"].astype(str))
+    ours = twfe_ols(df, "y", ["x1", "x2"], "unit", "time", weights="w")
+    sm = smf.wls("y ~ x1 + x2 + C(us) + C(ts)", data=df, weights=df["w"]).fit(
+        cov_type="cluster", cov_kwds={"groups": df["us"], "use_correction": True})
+    for term in ["x1", "x2"]:
+        assert abs(ours.loc[term, "beta"] - sm.params[term]) < 1e-9
+        assert abs(ours.loc[term, "se"] - sm.bse[term]) < 1e-9
+    print("twfe_ols (weighted) validation OK")
+
+
 if __name__ == "__main__":
     validate_against_statsmodels()
     validate_multi_against_statsmodels()
+    validate_weighted_against_statsmodels()

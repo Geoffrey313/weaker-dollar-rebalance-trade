@@ -1,39 +1,38 @@
 """Two-country DCP rebalancing block (Phase 2, baseline reduced form).
 
-This is the calibrated reduced form of the framework's mechanism: how much a bilateral real
-depreciation improves the US-China trade balance, as a function of the two frictions
-(dollar-price stickiness theta_dollar and the capital-controls wedge chi). It delivers
-Conclusions 1 and 2 (does an engineered depreciation rebalance? and the switching threshold).
-The full dynamic Ramsey GE solve (endogenous exchange-rate path, intertemporal margins) is the
-next increment; this block isolates the impact mechanism transparently.
+This is the calibrated reduced form behind the paper's impact-bound feasibility test: how much a
+bilateral real depreciation improves the US-China trade balance when the two frictions
+(dollar-price stickiness theta_dollar and the capital-controls wedge chi) are held fixed. It
+delivers the H2 diagnostic question: is an engineered depreciation large enough to rebalance
+within the bounded-cost threshold? The dynamic GE model in src/engine/dsge.py supplies the H3
+mechanism ranking; this block isolates the impact bound transparently.
 
-Derivation (log-linear, share-of-trade units). The semi-elasticity of the bilateral trade
-balance to a real depreciation of the RMB is
+Derivation (log-linear, OUTPUT units). Let X and M be bilateral exports and imports, s = M/(X+M)
+the import share of bilateral trade and gamma = (X+M)/Y bilateral openness. A relative-price
+change dp raises import value by (1-eta)*dp*M and export value by eta_star*dp*X, so the trade
+balance relative to output moves by gamma*[(1-s)*eta_star + s*(eta-1)]*dp. In the impact bound a
+real RMB appreciation de moves the relative price by (1-theta_dollar)*de and capital controls
+let only Phi(chi) of the adjustment be financed:
 
-    R(theta_dollar, chi) = Phi(chi) * (1 - theta_dollar) * (eta + eta_star - 1) * gamma
+    R(theta_dollar, chi) = Phi(chi) * (1 - theta_dollar) * gamma * [(1-s)*eta_star + s*(eta-1)]
 
-  * (eta + eta_star - 1): the Marshall-Lerner sum of import-demand elasticities. Expenditure
-    switching needs relative prices to move.
-  * (1 - theta_dollar): exchange-rate pass-through into border prices. Under dominant-currency
-    pricing (dollar invoicing), theta_dollar -> 1 and pass-through -> 0, so a depreciation does
-    NOT move the dollar border price and expenditure switching is shut down (H1).
-  * Phi(chi) = 1/(1+k*chi) in (0,1]: capital-controls damping. A closed capital account (chi large)
-    chokes the financing counterpart of the adjustment, so the equilibrium depreciation delivers
-    less rebalancing. The baseline sets k=1; sensitivity varies k because the exact functional
-    form is calibrated, not estimated.
-  * gamma: openness scaling (import share).
+  * [(1-s)*eta_star + s*(eta-1)]: the trade-weighted Marshall-Lerner term. It equals the long-run
+    net-export response of the general-equilibrium model (manuscript, Proposition 2), and with
+    balanced trade (s = 1/2) it is (eta + eta_star - 1)/2.
+  * (1 - theta_dollar): exchange-rate pass-through into border prices, applied symmetrically.
+  * Phi(chi) = 1/(1+k*chi) in (0,1]: capital-controls damping (k is a sensitivity parameter).
+  * gamma: bilateral openness, which converts the trade balance into output units, so the
+    initial imbalance imbalance0 is measured relative to output as well.
 
-NOTE (2026-09-21): this reduced form is a transparent analytical bound. Its reading that the
-dollar-invoicing friction theta_dollar is the dominant blocker is SUPERSEDED IN EMPHASIS by the
-general-equilibrium model (src/engine/dsge.py): in GE the closed capital account (chi) is the
-binding friction, while theta_dollar is roughly neutral for rebalancing (a weaker dollar still
-boosts US exports via mechanical currency conversion). DCP's role is tariff incidence, not
-blocking rebalancing. See docs/audit/03-mechanism-reconciliation.md.
+At the data-disciplined baseline (src.analysis.baseline) gamma * trade_term falls short of
+R_min, so the bound is infeasible for every theta_dollar and chi (manuscript, Proposition 1(c)).
+Because the bound applies (1 - theta_dollar) to both margins, it does not rank the frictions;
+the general-equilibrium model in src/engine/dsge.py does.
 
 Rebalancing is FEASIBLE if the depreciation needed to close the observed imbalance,
 |de| = imbalance0 / R, stays within the bounded-cost maximum max_depreciation. Equivalently,
 R must exceed R_min = imbalance0 / max_depreciation. The (theta_dollar, chi) locus where
-R = R_min is the switching frontier (Conclusion 2).
+R = R_min is the impact-bound switching frontier.
 """
 from __future__ import annotations
 
@@ -53,13 +52,18 @@ def capital_damping(p: Params = BASELINE, damping_scale: float = 1.0) -> float:
     return 1.0 / (1.0 + damping_scale * p.chi)
 
 
+def trade_term(p: Params = BASELINE) -> float:
+    """Trade-weighted Marshall-Lerner term (1-s)*eta_star + s*(eta-1)."""
+    return (1.0 - p.import_share) * p.eta_star + p.import_share * (p.eta - 1.0)
+
+
 def rebalancing_power(p: Params = BASELINE, damping_scale: float = 1.0) -> float:
-    """R = d(NX/trade)/d(real depreciation): the exchange rate's rebalancing power."""
+    """R = d(NX/output)/d(real RMB appreciation): the exchange rate's rebalancing power."""
     return (
         capital_damping(p, damping_scale=damping_scale)
         * (1.0 - p.theta_dollar)
-        * (p.eta + p.eta_star - 1.0)
         * p.gamma
+        * trade_term(p)
     )
 
 
@@ -70,7 +74,7 @@ def required_depreciation(p: Params = BASELINE, damping_scale: float = 1.0) -> f
 
 
 def is_feasible(p: Params = BASELINE, damping_scale: float = 1.0) -> bool:
-    """Can a bounded-cost depreciation close the bilateral imbalance? (Conclusion 1)."""
+    """Can a bounded-cost depreciation close the bilateral imbalance? (H2 impact bound)."""
     return required_depreciation(p, damping_scale=damping_scale) <= p.max_depreciation
 
 
@@ -80,15 +84,15 @@ def r_min(p: Params = BASELINE) -> float:
 
 
 def chi_threshold(theta_dollar: float, p: Params = BASELINE, damping_scale: float = 1.0) -> float:
-    """The capital-controls wedge chi at which R = R_min, given theta_dollar (Conclusion 2).
+    """The capital-controls wedge chi at which R = R_min, given theta_dollar.
 
     Below this chi (more open) rebalancing is feasible; above it (more closed) it is blocked.
     Returns nan if no positive chi satisfies it (already infeasible even at an open account).
     """
-    # R = (1/(1+k*chi))*(1-theta_dollar)*(eta+eta_star-1)*gamma = R_min
+    # R = (1/(1+k*chi))*(1-theta_dollar)*gamma*trade_term = R_min
     if damping_scale < 0:
         raise ValueError("damping_scale must be non-negative")
-    num = (1.0 - theta_dollar) * (p.eta + p.eta_star - 1.0) * p.gamma
+    num = (1.0 - theta_dollar) * p.gamma * trade_term(p)
     if num <= 0:
         return float("nan")
     one_plus_chi = num / r_min(p)

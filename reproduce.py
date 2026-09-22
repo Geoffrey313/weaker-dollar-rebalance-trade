@@ -4,7 +4,10 @@ Runs the whole chain from the shipped transformed data to the paper's headline n
 figures, in one command:
 
     data (transformed inputs)  ->  engine (structural model)  ->  analysis (panels, event
-    studies, counterfactual)  ->  figures (EN and FR).
+    studies, counterfactual)  ->  figures and tables (EN and FR).
+
+The tables and the in-text number macros are LaTeX fragments written into
+manuscript/<lang>/ssrn/tables/, so no number in the manuscripts is typed by hand.
 
 Determinism: every step is deterministic (no unseeded randomness, no timestamps in the numbers).
 Headline numbers are rounded and hashed (SHA-256) into a manifest; a re-run compares against it
@@ -39,7 +42,8 @@ def stage_data() -> None:
     from src.common.paths import DATA_DIR, PROJECT_ROOT
     public = ["china_input_exposure.parquet", "tariffs_bown_timeline.csv",
               "import_price_china_bls.csv", "china_imports_hs4.parquet",
-              "china_imports_naics.parquet"]
+              "china_imports_naics.parquet", "us_china_trade_annual.csv",
+              "fx_cny_usd_monthly.csv", "us_gdp_annual.csv"]
     missing = [f for f in public if not (DATA_DIR / f).exists()]
     if missing:
         raise FileNotFoundError(f"Missing transformed public inputs: {missing}")
@@ -62,25 +66,72 @@ def public_results() -> dict:
     results["border_price_p"] = _r(pr["p"])
     results["border_price_wcb_p"] = _r(run_wcb()["p_wcb"], 3)  # small-G reliable inference
 
+    # Parameters identified by the project's data (the structural baseline uses them).
+    from src.analysis.parameter_estimation import estimates
+    for key, value in estimates().items():
+        results[f"estimated_{key}"] = _r(value)
+
     from src.analysis.rebalancing_threshold import conclusion1
-    obs = conclusion1().pipe(lambda d: d[d["scenario"].str.startswith("observed")]).iloc[0]
-    results["reduced_form_required_deprec_observed"] = _r(obs["required_deprec"], 2)
-    results["reduced_form_feasible_observed"] = bool(obs["feasible"])
+    h2 = conclusion1().set_index("scenario")
+    results["impact_bound_required_deprec_estimated"] = _r(h2.iloc[0]["required_deprec"], 3)
+    results["impact_bound_required_deprec_no_friction"] = _r(h2.iloc[3]["required_deprec"], 3)
+    results["impact_bound_feasible_estimated"] = bool(h2.iloc[0]["feasible"])
 
     from src.analysis.dsge_counterfactual import theta_dollar_grid, chi_grid
-    td = theta_dollar_grid(); ch = chi_grid()
+    td = theta_dollar_grid()
+    ch = chi_grid()
     results["ge_efficiency_theta_dollar_0"] = _r(td.iloc[0]["efficiency"])
-    results["ge_efficiency_theta_dollar_095"] = _r(td[td["theta_dollar"] == 0.95]["efficiency"].iloc[0])
+    results["ge_efficiency_theta_dollar_estimated"] = _r(td[td["estimated"]]["efficiency"].iloc[0])
     results["ge_efficiency_chi_0"] = _r(ch.iloc[0]["efficiency"])
     results["ge_efficiency_chi_4"] = _r(ch[ch["chi"] == 4.0]["efficiency"].iloc[0])
 
     from src.analysis.integration import data_implied_eta
     results["data_implied_eta"] = _r(data_implied_eta())
 
-    # Staggered-robust (binarised stacked DiD) event-study post-treatment average.
-    from src.analysis.sector_event_study_staggered import run as staggered_run
+    # Staggered-robust (binarised stacked DiD) event-study post-treatment average, without and
+    # with the Wing-Freedman-Hollingsworth corrective weights.
+    from src.analysis.sector_event_study_staggered import run as staggered_run, post_mean
     sres = staggered_run()
     results["staggered_post_mean_beta"] = _r(sres.loc[[k for k in sres.index if k >= 0], "beta"].mean(), 3)
+    results["staggered_post_mean_beta_weighted"] = _r(post_mean(staggered_run(weighted=True)), 3)
+
+    # Identification tests of the event study: pre-announcement reference, split-sample intensity.
+    from src.analysis.sector_event_study import identification_tests
+    idt = identification_tests()
+    for key in ("baseline", "reference_2017Q4", "split_sample"):
+        results[f"event_post_mean_{key}"] = _r(idt[key]["post_mean"], 3)
+
+    # Robustness of the H3 comparative statics to one-way calibration changes (GE model).
+    from src.analysis.dsge_counterfactual import sensitivity as ge_sensitivity
+    gs = ge_sensitivity()
+    det = gs[gs["determinate"]]
+    results["ge_sensitivity_determinate"] = f"{len(det)}/{len(gs)}"
+    results["ge_sensitivity_invoicing_ratio_range"] = [_r(det["invoicing_ratio"].min(), 3),
+                                                       _r(det["invoicing_ratio"].max(), 3)]
+    results["ge_sensitivity_wedge_ratio_range"] = [_r(det["wedge_ratio"].min(), 3),
+                                                   _r(det["wedge_ratio"].max(), 3)]
+
+    # Literature defaults versus the data-disciplined baseline: the headline structural
+    # conclusions should not depend on which calibration is used as the reference point.
+    from src.analysis.calibration_validation import compare as calibration_compare
+    cv = calibration_compare().set_index("calibration")
+    for key in ("literature", "data_disciplined"):
+        tag = "data" if key == "data_disciplined" else key
+        results[f"calibration_{tag}_required_observed"] = _r(cv.loc[key, "required_observed"], 3)
+        results[f"calibration_{tag}_required_no_friction"] = _r(cv.loc[key, "required_no_friction"], 3)
+        results[f"calibration_{tag}_invoicing_ratio"] = _r(cv.loc[key, "invoicing_ratio"], 3)
+        results[f"calibration_{tag}_wedge_ratio"] = _r(cv.loc[key, "wedge_ratio"], 3)
+        results[f"calibration_{tag}_ranking_holds"] = bool(cv.loc[key, "ranking_holds"])
+
+    # Monte Carlo propagation of parameter uncertainty (fixed seed, deterministic).
+    from src.analysis.parameter_uncertainty import LAYERS, summary as mc_summary
+    for layer in LAYERS:
+        mc = mc_summary(layer)
+        results[f"mc_{layer}_share_ranking"] = _r(mc["share_ranking"], 4)
+        results[f"mc_{layer}_share_determinate"] = _r(mc["n_determinate"] / mc["n"], 4)
+        results[f"mc_{layer}_invoicing_effect_median"] = _r(mc["invoicing"]["q50"], 3)
+        results[f"mc_{layer}_wedge_effect_median"] = _r(mc["wedge"]["q50"], 3)
+        results[f"mc_{layer}_share_feasible"] = _r(mc["share_feasible"], 4)
     return results
 
 
@@ -99,13 +150,22 @@ def wrds_results() -> dict | None:
 def stage_figures() -> int:
     """Regenerate the master figures in EN and FR (deterministic; no hand-editing)."""
     from src.figures.style import apply_style, LANGS
-    from src.figures import fig_event_study, fig_h1_decomposition, fig_ge_mechanism
+    from src.figures import (fig_event_study, fig_ge_irf, fig_ge_mechanism, fig_h1_decomposition,
+                             fig_uncertainty, fig_uncertainty_bound)
     apply_style()
     n = 0
-    for mod in (fig_event_study, fig_h1_decomposition, fig_ge_mechanism):
+    for mod in (fig_event_study, fig_h1_decomposition, fig_ge_mechanism, fig_ge_irf, fig_uncertainty,
+                fig_uncertainty_bound):
         for lang in LANGS:
-            mod.make(lang); n += 1
+            mod.make(lang)
+            n += 1
     return n
+
+
+def stage_tables() -> int:
+    """Regenerate the results tables and in-text number macros in EN and FR."""
+    from src.figures.tables import make_all
+    return make_all()
 
 
 def fingerprint(results: dict, manifest: Path, label: str) -> None:
@@ -119,7 +179,8 @@ def fingerprint(results: dict, manifest: Path, label: str) -> None:
         else:
             print(f"[{label}] MISMATCH — stored {stored.get('sha256','')[:12]}... vs now {digest[:12]}...")
             for k in sorted(set(results) | set(stored.get("results", {}))):
-                a = stored.get("results", {}).get(k); b = results.get(k)
+                a = stored.get("results", {}).get(k)
+                b = results.get(k)
                 if a != b:
                     print(f"    {k}: stored {a!r} -> now {b!r}")
     else:
@@ -132,7 +193,8 @@ def main() -> None:
     stage_data()
     pub = public_results()
     wr = wrds_results()
-    print(f"[figures] regenerated {stage_figures()} figures (EN+FR)\n")
+    print(f"[figures] regenerated {stage_figures()} figures (EN+FR)")
+    print(f"[tables] regenerated {stage_tables()} table fragments (EN+FR)\n")
 
     print("Headline results (public):")
     for k, v in pub.items():

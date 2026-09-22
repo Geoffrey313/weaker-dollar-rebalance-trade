@@ -4,7 +4,7 @@ A calibrated log-linear open-economy NK model solved with the validated Klein so
 (src/engine/linre). It is deliberately compact (not the full 20-equation NOEM) but genuine:
 it carries the mechanism the paper needs — dollar-price stickiness (DCP), a modified UIP with a
 capital-controls/portfolio wedge, NFA dynamics, and a bilateral net-export block — so we can
-ask the dynamic version of Conclusion 1: does an engineered weaker dollar (RMB appreciation) improve the
+ask the H3 dynamic question: does an engineered weaker dollar (RMB appreciation) improve the
 bilateral balance, and at what output-gap cost, as theta_dollar and chi vary?
 
 Variables x_t = [ d, pm, tau, z | y, pi, e, nx ] (deviations from steady state):
@@ -20,12 +20,18 @@ the IRF: z=+1 -> e>0.)
 
 Equations (A E_t x_{t+1} = B x_t):
   d_{t+1} = (1/beta) d_t + nx_t                                   (NFA accumulation)
-  pm_{t+1} = theta_$ pm_t + (1-theta_$) e_{t+1}                   (DCP: dollar price tracks e slowly)
+  pm_{t+1} = theta_$ pm_t + (1-theta_$) E_t e_{t+1}               (DCP: predetermined dollar price;
+                                                                  a share 1-theta_$ resets each quarter)
   tau_{t+1} = rho_tau tau_t ; z_{t+1} = rho_z z_t                 (exogenous AR1)
-  (1+phi_y/sigma) y_t + (phi_pi/sigma) pi_t = E y_{t+1} + (1/sigma) E pi_{t+1}   (IS + Taylor)
+  (1+phi_y/sigma) y_t + (phi_pi/sigma) pi_t - gamma nx_t = E y_{t+1} + (1/sigma) E pi_{t+1}
+                                                                  (IS + Taylor, with net exports)
   beta E pi_{t+1} = pi_t - kappa y_t                              (NK Phillips curve)
   E e_{t+1} = phi_pi pi_t + phi_y y_t + e_t + Phi(1+chi) d_t - z_t (modified UIP + Taylor rate)
-  nx_t = eta_star e_t + (eta-1) pm_t + eta tau_t                  (bilateral net exports, DCP-valued)
+  nx_t = s_x eta_star e_t + s_m (eta-1) pm_t + s_m eta tau_t      (bilateral net exports relative to
+                                                                  steady-state bilateral trade;
+                                                                  s_m = import_share, s_x = 1 - s_m)
+The manuscript writes the same system with omega for beta, r_t for the policy rate, n_t for nx_t,
+p^m_t for pm_t, s for import_share, and psi for portfolio_cost (section "Structural Model").
 """
 from __future__ import annotations
 

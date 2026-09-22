@@ -1,52 +1,54 @@
-"""Figure 3 — GE mechanism reconciliation: DCP does not block rebalancing; capital controls do.
+"""Figure: rebalancing efficiency against the two frictions in the general-equilibrium model.
 
-Two panels from the dynamic counterfactual: the FX rebalancing efficiency (net exports bought
-per unit of output-gap cost by an engineered weaker dollar) is roughly flat in the dollar-
-invoicing friction theta_dollar, but collapses in the capital-controls wedge chi. This is the
-figure that reconciles the thesis: dominant-currency pricing shapes tariff incidence (H1),
-while the closed capital account is what binds exchange-rate rebalancing.
+Two panels from the dynamic counterfactual (src.analysis.dsge_counterfactual) at the
+data-disciplined baseline. Left: the efficiency (discounted net exports bought per unit of
+discounted output-gap cost by an engineered weaker dollar) over the dollar-invoicing friction
+theta, with the estimate marked and its 95 percent confidence interval shaded. Right: the
+efficiency over the capital-controls wedge chi at the estimated friction. It illustrates H3: the
+efficiency falls modestly with invoicing and steeply with the wedge.
 """
 from __future__ import annotations
 
-from src.analysis.dsge_counterfactual import theta_dollar_grid, chi_grid
-from src.figures.style import apply_style, save, BLUE, ORANGE, MUTED, LANGS
 import matplotlib.pyplot as plt
 
+from src.analysis.dsge_counterfactual import chi_grid, theta_dollar_grid
+from src.analysis.parameter_estimation import estimate_passthrough
+from src.figures.style import (BRICK, GREY_TINT, LANGS, NAVY, TEXT_WIDTH, apply_style, localize,
+                               save)
+
 LABELS = {
-    "en": {"title": "Dollar invoicing does not block rebalancing; capital controls do",
-           "x_td": "Dollar-invoicing friction", "x_chi": "Capital-controls wedge",
-           "y": "FX rebalancing efficiency", "flat": "roughly flat", "coll": "collapses",
-           "obs": "observed"},
-    "fr": {"title": "L'invoicing dollar ne bloque pas le reequilibrage ; les controles de capitaux si",
-           "x_td": "Friction d'invoicing dollar", "x_chi": "Coin de controle des capitaux",
-           "y": "Efficacite de reequilibrage FX", "flat": "quasi plate", "coll": "s'effondre",
-           "obs": "observe"},
+    "en": {"x_td": r"Dollar-invoicing friction, $\theta$",
+           "x_chi": r"Capital-controls wedge, $\chi$",
+           "y": r"Rebalancing efficiency, $\Lambda$"},
+    "fr": {"x_td": r"Friction de facturation en dollars, $\theta$",
+           "x_chi": r"Coin de contrôle des capitaux, $\chi$",
+           "y": r"Efficacité de rééquilibrage, $\Lambda$"},
 }
 
 
 def make(lang: str) -> None:
     L = LABELS[lang]
-    td = theta_dollar_grid(); ch = chi_grid()
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 3.6))
+    td, ch = theta_dollar_grid(), chi_grid()
+    pt = estimate_passthrough()
+    top = max(ch["efficiency"].max(), td["efficiency"].max()) * 1.08
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(TEXT_WIDTH, 2.7), sharey=True,
+                                   layout="constrained")
 
-    ax1.plot(td["theta_dollar"], td["efficiency"], color=BLUE, lw=2.0, marker="o", ms=4)
-    ax1.set_xlabel(L["x_td"]); ax1.set_ylabel(L["y"])
-    ax1.set_ylim(0, max(ch["efficiency"].max(), td["efficiency"].max()) * 1.1)
-    ax1.annotate(L["flat"], xy=(0.5, td["efficiency"].mean()),
-                 xytext=(0.15, td["efficiency"].mean() + 0.4), color=BLUE, fontsize=9)
-    obs = td[td["theta_dollar"] == 0.95]
-    if len(obs):
-        ax1.scatter(obs["theta_dollar"], obs["efficiency"], color=ORANGE, zorder=5, s=36)
-        ax1.annotate(L["obs"], xy=(0.95, obs["efficiency"].iloc[0]), xytext=(0.6, obs["efficiency"].iloc[0] - 0.6),
-                     color=ORANGE, fontsize=9)
+    ax1.axvspan(pt["theta"] - 1.96 * pt["se"], pt["theta"] + 1.96 * pt["se"],
+                color=GREY_TINT, lw=0, zorder=0)
+    ax1.plot(td["theta_dollar"], td["efficiency"], color=NAVY, marker="o", ms=3.2, zorder=2)
+    est = td[td["estimated"]].iloc[0]
+    ax1.plot([est["theta_dollar"]], [est["efficiency"]], ls="none", marker="o", ms=6.5,
+             mfc="white", mec=NAVY, mew=1.2, zorder=3)
+    ax1.set_xlabel(L["x_td"])
+    ax1.set_ylabel(L["y"])
+    ax1.set_xlim(-0.03, 1.02)
 
-    ax2.plot(ch["chi"], ch["efficiency"], color=BLUE, lw=2.0, marker="o", ms=4)
+    ax2.plot(ch["chi"], ch["efficiency"], color=BRICK, ls=(0, (5, 2)), marker="s", ms=3.2)
     ax2.set_xlabel(L["x_chi"])
-    ax2.set_ylim(0, max(ch["efficiency"].max(), td["efficiency"].max()) * 1.1)
-    ax2.annotate(L["coll"], xy=(2.5, ch["efficiency"].iloc[-1]),
-                 xytext=(1.6, ch["efficiency"].max() * 0.55), color=BLUE, fontsize=9)
-
-    fig.tight_layout()  # no internal title (paper-writing-rules 2.2; title in the LaTeX caption)
+    ax2.set_ylim(0, top)
+    for ax in (ax1, ax2):
+        localize(ax, lang)
     save(fig, "fig_ge_mechanism", lang)
 
 

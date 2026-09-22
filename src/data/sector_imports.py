@@ -49,3 +49,12 @@ if __name__ == "__main__":
     q["ym"] = q["year"].astype(str) + "-" + q["month"].astype(str).str.zfill(2)
     for _, r in q[q["month"].isin([1, 4, 7, 10])].iterrows():
         print(f"  {r['ym']}: {r['agg_effective_tariff']:.4f}")
+
+
+def aggregate_effective_tariff_quarterly(path: str | Path = IMPORTS_PATH) -> pd.Series:
+    """Aggregate effective tariff on US imports from China by quarter: sum of duties over sum of
+    customs value across all HS4 products (a trade-weighted realized rate)."""
+    df = load_china_imports_hs4(path)
+    q = pd.PeriodIndex(pd.to_datetime(dict(year=df["year"], month=df["month"], day=1)), freq="Q")
+    agg = df.groupby(q)[["duties_usd", "value_usd"]].sum()
+    return (agg["duties_usd"] / agg["value_usd"]).rename("tariff")

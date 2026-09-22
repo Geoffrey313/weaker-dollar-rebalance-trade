@@ -8,7 +8,7 @@ that value response provides a reduced-form elasticity discipline for the rebala
 
 so the level-tariff beta is a local approximation, while a log(1+tau) regressor gives the
 closer Armington mapping. Feeding these empirical elasticity disciplines into the DCP
-rebalancing block checks whether Conclusion 1 rests on an assumed eta.
+rebalancing block checks whether the H2 impact bound rests on an assumed eta.
 
 This is a reduced-form mapping (single elasticity from a single reduced-form coefficient); the
 full structural estimation would target the model's cross-equation restrictions. It is stated
@@ -19,8 +19,7 @@ from __future__ import annotations
 import pandas as pd
 
 from src.analysis.sector_passthrough import run as sector_run, run_tariff_transform
-from src.engine.calibration import BASELINE
-from src.engine.model import rebalancing_power, required_depreciation, is_feasible, replace
+from src.engine.model import rebalancing_power, required_depreciation, is_feasible
 
 
 def data_implied_elasticities() -> pd.DataFrame:
@@ -51,39 +50,26 @@ def data_implied_eta() -> float:
     return float(data_implied_elasticities().loc[0, "eta_hat"])
 
 
-def disciplined_conclusion1() -> pd.DataFrame:
-    elasticities = data_implied_elasticities()
-    scenarios = [("baseline eta=1.5 (assumed)", "calibration", BASELINE)]
-    for row in elasticities.itertuples(index=False):
-        scenarios.extend([
-            (
-                f"{row.source}: eta only ({row.eta_hat:.2f})",
-                row.mapping,
-                replace(BASELINE, eta=row.eta_hat),
-            ),
-            (
-                f"{row.source}: eta and eta_star ({row.eta_hat:.2f})",
-                f"{row.mapping}; symmetric foreign elasticity imposed",
-                replace(BASELINE, eta=row.eta_hat, eta_star=row.eta_hat),
-            ),
-        ])
+def disciplined_h2() -> pd.DataFrame:
+    """The impact bound under the literature calibration and under the data-disciplined baseline."""
+    from src.analysis.baseline import baseline
+    from src.engine.calibration import LITERATURE
     rows = []
-    for name, mapping, p in scenarios:
-        rows.append({"scenario": name, "mapping": mapping, "eta": p.eta, "eta_star": p.eta_star,
-                     "R_observed": rebalancing_power(p),
+    for name, p in (("literature calibration", LITERATURE), ("data-disciplined baseline", baseline())):
+        rows.append({"scenario": name, "eta": p.eta, "eta_star": p.eta_star, "gamma": p.gamma,
+                     "import_share": p.import_share, "imbalance0": p.imbalance0,
+                     "theta_dollar": p.theta_dollar, "R_observed": rebalancing_power(p),
                      "required_deprec": required_depreciation(p), "feasible": is_feasible(p)})
     return pd.DataFrame(rows)
 
 
 if __name__ == "__main__":
     pd.set_option("display.float_format", lambda x: f"{x:.3f}")
-    print("PHASE 4 (increment): structural block disciplined by empirical elasticities\n")
+    print("Structural block: literature calibration versus data-disciplined baseline\n")
     print("Reduced-form elasticity inputs from the sector pass-through")
     print(data_implied_elasticities().to_string(index=False))
     print()
-    print(disciplined_conclusion1().to_string(index=False))
-    print("\nConclusion 1, empirically disciplined: replacing the assumed eta with reduced-form")
-    print("elasticities from the 2018-19 tariff episode still leaves the required depreciation far")
-    print("above any bounded-cost level. The eta-only rows are the conservative mapping; the")
-    print("eta+eta_star rows impose symmetry for the foreign elasticity. This is not a full")
-    print("Lucas-robust structural estimate; it is a reduced-form bridge into the DCP block.")
+    print(disciplined_h2().to_string(index=False))
+    print("\nThe data-disciplined baseline replaces the literature values of eta, the invoicing")
+    print("friction, the tariff persistence, the import share, bilateral openness and the initial")
+    print("imbalance with estimates from the project's data (src.analysis.parameter_estimation).")

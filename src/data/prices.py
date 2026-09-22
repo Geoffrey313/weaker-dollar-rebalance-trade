@@ -41,3 +41,11 @@ if __name__ == "__main__":
     mapped = p[p["icio_industry"].notna()]
     print(f"NAICS series mapped to an ICIO industry: {mapped['series_id'].nunique()} "
           f"(industries: {sorted(mapped['icio_industry'].unique())})")
+
+
+def china_import_price_total_quarterly(path: str | Path = PRICES_PATH) -> pd.Series:
+    """All-industries import price index of Chinese-origin goods (NAICS 'TOT'), quarterly mean."""
+    df = load_china_import_prices(path)
+    df = df[df["naics"] == "TOT"]
+    q = pd.PeriodIndex(pd.to_datetime(dict(year=df["year"], month=df["month"], day=1)), freq="Q")
+    return df.groupby(q)["value"].mean().rename("price")
