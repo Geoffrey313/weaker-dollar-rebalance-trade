@@ -37,7 +37,7 @@ TXT = {
         "panel_a_stack": "Panel A. Event-time coefficients $\\beta^{S}_k$",
         "panel_b_stack": "Panel B. Mean post-treatment effect by treatment cutoff",
         "panel_c_stack": "Panel C. Cohort samples",
-        "ref": "reference", "pp": "percentage points",
+        "pp": "percentage points",
         "stacked_obs": "Product-quarter-cohort obs.",
         "stacks": "Treatment cohorts", "treated": "Treated products",
         "controls": "Never-treated controls per cohort sample",
@@ -104,7 +104,7 @@ TXT = {
         "panel_a_stack": "Panneau A. Coefficients en temps d'événement $\\beta^{S}_k$",
         "panel_b_stack": "Panneau B. Effet moyen post-traitement par seuil",
         "panel_c_stack": "Panneau C. Échantillons par cohorte",
-        "ref": "référence", "pp": "points de pourcentage",
+        "pp": "points de pourcentage",
         "stacked_obs": "Obs. produit-trimestre-cohorte",
         "stacks": "Cohortes de traitement", "treated": "Produits traités",
         "controls": "Témoins jamais traités par échantillon de cohorte",
@@ -383,8 +383,7 @@ def table_staggered(res: dict, lang: str) -> str:
     out += _panel_head(3, T['panel_a_stack'])
     for k in range(-4, 7):
         label = f"$k={raw_num(k, 0, lang)}$"
-        if k == -1:
-            out += _rule_row(label, [f"$0$ ({T['ref']})"] * 2)
+        if k == -1:  # reference period: omitted, not shown (Sun & Abraham 2021)
             continue
         out += _rule_row(label, [coef(r.loc[k, "beta"], r.loc[k, "p"], 3, lang) for r in (unw, wtd)])
         out += _rule_row("", [se(r.loc[k, "se"], 3, lang) for r in (unw, wtd)])
@@ -543,8 +542,7 @@ def table_event(res: dict, lang: str) -> str:
         for q in rows:
             k = quarters.index(q) - ref - 1
             label = q.replace("Q", "T") if lang == "fr" else q
-            if q == "2018Q2":
-                out += _rule_row(label, [f"${raw_num(k, 0, lang)}$", f"$0$ ({T['ref']})", "", ""])
+            if q == "2018Q2":  # k=-1 reference period: omitted, not shown (Sun & Abraham 2021)
                 continue
             r = ev.loc[q]
             out += _rule_row(label, [f"${raw_num(k, 0, lang)}$", coef(r["beta"], r["p"], 3, lang),
@@ -562,8 +560,8 @@ def table_identification(res: dict, lang: str) -> str:
         return q.replace("Q", "T") if lang == "fr" else q
 
     def coef_or_ref(r: dict, q: str) -> tuple[str, str]:
-        if q == r["ref_q"]:
-            return f"$0$ ({T['ref']})", ""
+        if q == r["ref_q"]:  # normalized reference quarter (named in the reference-quarter row)
+            return "\\textemdash", ""
         c = r["coef"].loc[q]
         return coef(c["beta"], c["p"], 3, lang), se(c["se"], 3, lang)
 

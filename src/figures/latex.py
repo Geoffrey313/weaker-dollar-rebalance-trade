@@ -52,7 +52,7 @@ def raw_num(x: float, nd: int, lang: str) -> str:
     else:
         neg = x < 0
     whole, _, frac = s.partition(".")
-    whole = _group(whole, lang) if len(whole) > 4 else whole
+    whole = _group(whole, lang) if len(whole) >= 4 else whole
     dec = "." if lang == "en" else "{,}"
     body = whole + (dec + frac if frac else "")
     return ("-" if neg else "") + body
